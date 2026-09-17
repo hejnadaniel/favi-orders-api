@@ -110,7 +110,8 @@ paths:
       description: |
         Partial update following JSON Merge Patch (RFC 7396). In this version
         `expectedDeliveryDate` is the only field that can change; it is required
-        in the body and must not be `null`. Unknown fields are rejected.
+        in the body and must not be `null`. Unknown fields are rejected with
+        `422` and a pointer to each of them.
 
         The request is idempotent: sending the same body twice leaves the order
         in the same state.
@@ -306,7 +307,7 @@ components:
 
   responses:
     MalformedRequest:
-      description: Body is not valid JSON or contains an unknown property
+      description: Body is not valid JSON
       content:
         application/problem+json:
           schema:
