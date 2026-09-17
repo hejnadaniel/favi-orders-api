@@ -1,0 +1,17 @@
+openapi: 3.1.0
+info:
+  title: FAVI Partner Orders API
+  version: 1.0.0
+  description: |
+    REST API through which partner shops submit their orders and later change
+    the expected delivery date. Endpoints are added in the implementation
+    branch; this file is the contract and is written before the code.
+  contact:
+    name: Daniel Hejna
+servers:
+  - url: http://127.0.0.1:8000
+    description: Local development
+tags:
+  - name: Orders
+    description: Partner orders
+paths: {}
