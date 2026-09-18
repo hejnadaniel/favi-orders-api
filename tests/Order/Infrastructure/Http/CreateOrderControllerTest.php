@@ -41,13 +41,13 @@ final class CreateOrderControllerTest extends ApiTestCase
     public function testAmountsAreNormalisedToTwoFractionalDigits(): void
     {
         $this->postOrder(self::orderPayload([
-            'totalValue' => '100',
+            'totalValue' => '350',
             'products' => [['productId' => 'SOFA-OSLO-3S', 'name' => 'Nightstand Luna', 'price' => '99.9', 'quantity' => 1]],
         ]));
 
         self::assertResponseStatusCodeSame(201);
         $body = $this->responseBody();
-        self::assertSame('3290.00', $body['totalValue']);
+        self::assertSame('350.00', $body['totalValue']);
         self::assertSame([['productId' => 'SOFA-OSLO-3S', 'name' => 'Nightstand Luna', 'price' => '99.90', 'quantity' => 1]], $body['products']);
     }
 
