@@ -22,10 +22,6 @@ final class OrderProduct
     #[ORM\JoinColumn(name: 'order_id', nullable: false, onDelete: 'CASCADE')]
     public private(set) Order $order;
 
-    /**
-     * Zero-based index of the line in the partner's request; keeps read-back
-     * order identical to submission order.
-     */
     #[ORM\Column(type: Types::SMALLINT)]
     public private(set) int $position;
 
@@ -35,7 +31,7 @@ final class OrderProduct
     #[ORM\Column(length: 255)]
     public private(set) string $name;
 
-    #[ORM\Column(type: Types::DECIMAL, precision: 14, scale: 2)]
+    #[ORM\Column(type: Types::DECIMAL, precision: DecimalAmount::PRECISION, scale: DecimalAmount::SCALE)]
     public private(set) string $price;
 
     #[ORM\Column]

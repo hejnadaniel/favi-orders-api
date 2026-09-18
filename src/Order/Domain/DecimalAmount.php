@@ -6,19 +6,11 @@ namespace App\Order\Domain;
 
 use App\Order\Domain\Exception\InvalidOrderException;
 
-/**
- * Non-negative decimal amount with at most 12 integer and 2 fractional digits.
- *
- * Kept as a string end to end: no float ever touches the money path. The value
- * is normalised to exactly two fractional digits so that what the API returns
- * right after creation equals what PostgreSQL returns from `numeric(14, 2)`.
- *
- * Deliberately not a Money type: the assignment carries no currency, so there
- * is nothing to attach one to. See README, "Design decisions".
- */
 final readonly class DecimalAmount
 {
-    public const string PATTERN = '/^\d{1,12}(\.\d{1,2})?$/';
+    public const int PRECISION = 14;
+    public const int SCALE = 2;
+    public const string PATTERN = '/^\d{1,' . (self::PRECISION - self::SCALE) . '}(\.\d{1,' . self::SCALE . '})?$/';
 
     private function __construct(
         public string $value,
@@ -36,6 +28,6 @@ final readonly class DecimalAmount
 
         [$integer, $fraction] = array_pad(explode('.', $raw, 2), 2, '');
 
-        return new self($integer . '.' . str_pad($fraction, 2, '0'));
+        return new self($integer . '.' . str_pad($fraction, self::SCALE, '0'));
     }
 }

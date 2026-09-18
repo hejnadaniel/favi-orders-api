@@ -4,15 +4,9 @@ declare(strict_types=1);
 
 namespace App\Order\Domain\Exception;
 
+use App\Order\Domain\DecimalAmount;
 use InvalidArgumentException;
 
-/**
- * A domain invariant was violated while building an order.
- *
- * Request validation at the HTTP boundary catches these cases first and turns
- * them into 422 responses; this exception is the last line of defence for
- * callers that bypass HTTP.
- */
 final class InvalidOrderException extends InvalidArgumentException
 {
     public static function noProducts(): self
@@ -27,6 +21,6 @@ final class InvalidOrderException extends InvalidArgumentException
 
     public static function malformedAmount(string $raw): self
     {
-        return new self(\sprintf('"%s" is not a decimal amount with up to 12 integer and 2 fractional digits.', $raw));
+        return new self(\sprintf('"%s" is not a non-negative decimal amount that fits numeric(%d, %d).', $raw, DecimalAmount::PRECISION, DecimalAmount::SCALE));
     }
 }

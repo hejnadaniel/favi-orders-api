@@ -18,10 +18,6 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\UniqueConstraint(name: 'uniq_orders_partner_order', columns: ['partner_id', 'order_id'])]
 final class Order
 {
-    /**
-     * UUID v7: time-ordered, so new rows append to the end of the primary key
-     * index instead of scattering across it like v4 would.
-     */
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME)]
     public private(set) Uuid $id;
@@ -35,11 +31,7 @@ final class Order
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
     public private(set) DateTimeImmutable $expectedDeliveryDate;
 
-    /**
-     * Stored exactly as the partner sent it. Not recomputed from the product
-     * lines and not verified against them (assignment: "store raw data").
-     */
-    #[ORM\Column(type: Types::DECIMAL, precision: 14, scale: 2)]
+    #[ORM\Column(type: Types::DECIMAL, precision: DecimalAmount::PRECISION, scale: DecimalAmount::SCALE)]
     public private(set) string $totalValue;
 
     #[ORM\Column(type: Types::DATETIMETZ_IMMUTABLE)]
