@@ -53,16 +53,16 @@ final class OrderCreatorTest extends TestCase
 
     public function testRejectsSecondSubmissionOfTheSameOrderAndKeepsTheFirst(): void
     {
-        $first = $this->creator->create(OrderFactory::createOrder(totalValue: '100.00'));
+        $first = $this->creator->create(OrderFactory::createOrder(totalValue: '3290.00'));
 
         $this->expectException(DuplicateOrderException::class);
 
         try {
-            $this->creator->create(OrderFactory::createOrder(totalValue: '1.00'));
+            $this->creator->create(OrderFactory::createOrder(totalValue: '890.00'));
         } finally {
             self::assertSame(1, $this->orders->count());
             self::assertSame($first, $this->orders->find('nabytek-brno', 'WEB-100001'));
-            self::assertSame('100.00', $first->totalValue);
+            self::assertSame('3290.00', $first->totalValue);
         }
     }
 

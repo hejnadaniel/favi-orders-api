@@ -112,7 +112,7 @@ final class PatchOrderControllerTest extends ApiTestCase
     {
         $this->postOrder(self::orderPayload());
 
-        $this->patchOrder(['expectedDeliveryDate' => '2026-10-19', 'totalValue' => '0.01']);
+        $this->patchOrder(['expectedDeliveryDate' => '2026-10-19', 'totalValue' => '5.00']);
 
         self::assertProblem(422, 'validation-failed');
         self::assertSame(['/totalValue'], self::errorPointers($this->responseBody()));

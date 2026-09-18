@@ -42,21 +42,21 @@ final class CreateOrderControllerTest extends ApiTestCase
     {
         $this->postOrder(self::orderPayload([
             'totalValue' => '100',
-            'products' => [['productId' => 'SOFA-OSLO-3S', 'name' => 'Item', 'price' => '99.9', 'quantity' => 1]],
+            'products' => [['productId' => 'SOFA-OSLO-3S', 'name' => 'Nightstand Luna', 'price' => '99.9', 'quantity' => 1]],
         ]));
 
         self::assertResponseStatusCodeSame(201);
         $body = $this->responseBody();
-        self::assertSame('100.00', $body['totalValue']);
-        self::assertSame([['productId' => 'SOFA-OSLO-3S', 'name' => 'Item', 'price' => '99.90', 'quantity' => 1]], $body['products']);
+        self::assertSame('3290.00', $body['totalValue']);
+        self::assertSame([['productId' => 'SOFA-OSLO-3S', 'name' => 'Nightstand Luna', 'price' => '99.90', 'quantity' => 1]], $body['products']);
     }
 
     public function testSecondSubmissionOfTheSameOrderConflictsAndKeepsTheFirst(): void
     {
-        $this->postOrder(self::orderPayload(['totalValue' => '100.00']));
+        $this->postOrder(self::orderPayload(['totalValue' => '3290.00']));
         self::assertResponseStatusCodeSame(201);
 
-        $this->postOrder(self::orderPayload(['totalValue' => '1.00']));
+        $this->postOrder(self::orderPayload(['totalValue' => '890.00']));
 
         self::assertProblem(409, 'duplicate-order');
         $problem = $this->responseBody();
@@ -66,7 +66,7 @@ final class CreateOrderControllerTest extends ApiTestCase
         self::assertSame('/api/v1/partners/nabytek-brno/orders', $problem['instance']);
 
         $this->getOrder();
-        self::assertSame('100.00', $this->responseBody()['totalValue']);
+        self::assertSame('3290.00', $this->responseBody()['totalValue']);
     }
 
     public function testSameOrderIdUnderAnotherPartnerIsANewOrder(): void
@@ -111,7 +111,7 @@ final class CreateOrderControllerTest extends ApiTestCase
 
     public function testRejectsNegativeTotalValueWithFieldPointer(): void
     {
-        $this->postOrder(self::orderPayload(['totalValue' => '-1.00']));
+        $this->postOrder(self::orderPayload(['totalValue' => '-250.00']));
 
         self::assertProblem(422, 'validation-failed');
         $problem = $this->responseBody();
@@ -125,7 +125,7 @@ final class CreateOrderControllerTest extends ApiTestCase
     public function testRejectsInvalidNestedProductWithNestedPointers(): void
     {
         $this->postOrder(self::orderPayload(['products' => [
-            ['productId' => 'SOFA-OSLO-3S', 'name' => 'Item', 'price' => '10.123', 'quantity' => 0],
+            ['productId' => 'SOFA-OSLO-3S', 'name' => 'Nightstand Luna', 'price' => '10.123', 'quantity' => 0],
         ]]));
 
         self::assertProblem(422, 'validation-failed');

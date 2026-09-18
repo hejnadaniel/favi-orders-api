@@ -81,7 +81,7 @@ final class OrderTest extends TestCase
 
     public function testProductLineAcceptsQuantityOfOne(): void
     {
-        $line = new ProductLine('SOFA-OSLO-3S', 'Item', DecimalAmount::fromString('1.00'), 1);
+        $line = new ProductLine('SOFA-OSLO-3S', 'Nightstand Luna', DecimalAmount::fromString('890.00'), 1);
 
         self::assertSame(1, $line->quantity);
     }
@@ -90,7 +90,7 @@ final class OrderTest extends TestCase
     {
         $this->expectException(InvalidOrderException::class);
 
-        new ProductLine('SOFA-OSLO-3S', 'Item', DecimalAmount::fromString('1.00'), 0);
+        new ProductLine('SOFA-OSLO-3S', 'Nightstand Luna', DecimalAmount::fromString('890.00'), 0);
     }
 
     /**
@@ -102,8 +102,8 @@ final class OrderTest extends TestCase
             partnerId: 'nabytek-brno',
             orderId: 'WEB-100001',
             expectedDeliveryDate: new DateTimeImmutable('2026-10-05'),
-            totalValue: DecimalAmount::fromString('100.00'),
-            products: $products ?? [new ProductLine('SOFA-OSLO-3S', 'Item', DecimalAmount::fromString('100.00'), 1)],
+            totalValue: DecimalAmount::fromString('3290.00'),
+            products: $products ?? [new ProductLine('SOFA-OSLO-3S', 'Nightstand Luna', DecimalAmount::fromString('3290.00'), 1)],
             now: $now ?? new DateTimeImmutable('2026-09-21T10:15:00+00:00'),
         );
     }
