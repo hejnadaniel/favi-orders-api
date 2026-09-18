@@ -21,8 +21,8 @@ final class CreateOrderControllerTest extends ApiTestCase
         $body = $this->responseBody();
         self::assertSame(self::PARTNER_ID, $body['partnerId']);
         self::assertSame(self::ORDER_ID, $body['orderId']);
-        self::assertSame('2026-06-15', $body['expectedDeliveryDate']);
-        self::assertSame('1299.99', $body['totalValue']);
+        self::assertSame('2026-10-05', $body['expectedDeliveryDate']);
+        self::assertSame('47940.00', $body['totalValue']);
         self::assertSame($payload['products'], $body['products']);
         self::assertSame($body['createdAt'], $body['updatedAt']);
     }
@@ -42,13 +42,13 @@ final class CreateOrderControllerTest extends ApiTestCase
     {
         $this->postOrder(self::orderPayload([
             'totalValue' => '100',
-            'products' => [['productId' => 'SKU-001', 'name' => 'Item', 'price' => '99.9', 'quantity' => 1]],
+            'products' => [['productId' => 'SOFA-OSLO-3S', 'name' => 'Item', 'price' => '99.9', 'quantity' => 1]],
         ]));
 
         self::assertResponseStatusCodeSame(201);
         $body = $this->responseBody();
         self::assertSame('100.00', $body['totalValue']);
-        self::assertSame([['productId' => 'SKU-001', 'name' => 'Item', 'price' => '99.90', 'quantity' => 1]], $body['products']);
+        self::assertSame([['productId' => 'SOFA-OSLO-3S', 'name' => 'Item', 'price' => '99.90', 'quantity' => 1]], $body['products']);
     }
 
     public function testSecondSubmissionOfTheSameOrderConflictsAndKeepsTheFirst(): void
@@ -56,14 +56,14 @@ final class CreateOrderControllerTest extends ApiTestCase
         $this->postOrder(self::orderPayload(['totalValue' => '100.00']));
         self::assertResponseStatusCodeSame(201);
 
-        $this->postOrder(self::orderPayload(['totalValue' => '999.00']));
+        $this->postOrder(self::orderPayload(['totalValue' => '1.00']));
 
         self::assertProblem(409, 'duplicate-order');
         $problem = $this->responseBody();
         self::assertSame('https://api.favi.test/problems/duplicate-order', $problem['type']);
         self::assertSame('Duplicate Order', $problem['title']);
         self::assertSame(409, $problem['status']);
-        self::assertSame('/api/v1/partners/PARTNER_A/orders', $problem['instance']);
+        self::assertSame('/api/v1/partners/nabytek-brno/orders', $problem['instance']);
 
         $this->getOrder();
         self::assertSame('100.00', $this->responseBody()['totalValue']);
@@ -71,11 +71,11 @@ final class CreateOrderControllerTest extends ApiTestCase
 
     public function testSameOrderIdUnderAnotherPartnerIsANewOrder(): void
     {
-        $this->postOrder(self::orderPayload(), 'PARTNER_A');
-        $this->postOrder(self::orderPayload(), 'PARTNER_B');
+        $this->postOrder(self::orderPayload(), 'nabytek-brno');
+        $this->postOrder(self::orderPayload(), 'nabytek-ostrava');
 
         self::assertResponseStatusCodeSame(201);
-        self::assertResponseHeaderSame('Location', self::orderPath(partnerId: 'PARTNER_B'));
+        self::assertResponseHeaderSame('Location', self::orderPath(partnerId: 'nabytek-ostrava'));
     }
 
     public function testRejectsNegativeTotalValueWithFieldPointer(): void
@@ -94,7 +94,7 @@ final class CreateOrderControllerTest extends ApiTestCase
     public function testRejectsInvalidNestedProductWithNestedPointers(): void
     {
         $this->postOrder(self::orderPayload(['products' => [
-            ['productId' => 'SKU-001', 'name' => 'Item', 'price' => '10.123', 'quantity' => 0],
+            ['productId' => 'SOFA-OSLO-3S', 'name' => 'Item', 'price' => '10.123', 'quantity' => 0],
         ]]));
 
         self::assertProblem(422, 'validation-failed');
@@ -114,8 +114,8 @@ final class CreateOrderControllerTest extends ApiTestCase
      */
     public static function provideInvalidDeliveryDates(): iterable
     {
-        yield 'wrong format' => ['15.06.2026'];
-        yield 'with time' => ['2026-06-15T10:00:00Z'];
+        yield 'wrong format' => ['05.10.2026'];
+        yield 'with time' => ['2026-10-05T10:00:00Z'];
         yield 'overflowing day' => ['2026-02-30'];
         yield 'overflowing month' => ['2026-13-01'];
     }
@@ -144,7 +144,7 @@ final class CreateOrderControllerTest extends ApiTestCase
     {
         $this->client->request(
             'POST',
-            '/api/v1/partners/PARTNER_A/orders',
+            '/api/v1/partners/nabytek-brno/orders',
             server: ['CONTENT_TYPE' => 'application/json'],
             content: '{"orderId": ',
         );
@@ -157,7 +157,7 @@ final class CreateOrderControllerTest extends ApiTestCase
     {
         $this->client->request(
             'POST',
-            '/api/v1/partners/PARTNER_A/orders',
+            '/api/v1/partners/nabytek-brno/orders',
             server: ['CONTENT_TYPE' => 'text/xml'],
             content: '<order/>',
         );

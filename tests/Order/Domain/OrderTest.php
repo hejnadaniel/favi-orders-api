@@ -16,26 +16,26 @@ final class OrderTest extends TestCase
 {
     public function testPlacedOrderCarriesEveryValueAsGiven(): void
     {
-        $now = new DateTimeImmutable('2026-06-01T10:15:00+00:00');
-        $deliveryDate = new DateTimeImmutable('2026-06-15');
+        $now = new DateTimeImmutable('2026-09-21T10:15:00+00:00');
+        $deliveryDate = new DateTimeImmutable('2026-10-05');
 
         $order = Order::place(
-            partnerId: 'PARTNER_A',
-            orderId: 'ORD-001',
+            partnerId: 'nabytek-brno',
+            orderId: 'WEB-100001',
             expectedDeliveryDate: $deliveryDate,
-            totalValue: DecimalAmount::fromString('1299.99'),
+            totalValue: DecimalAmount::fromString('47940.00'),
             products: [
-                new ProductLine('SKU-001', 'Bluetooth Headphones', DecimalAmount::fromString('129.99'), 2),
-                new ProductLine('SKU-002', 'USB-C Cable, 2 m', DecimalAmount::fromString('9.99'), 4),
+                new ProductLine('SOFA-OSLO-3S', 'Oslo three-seater sofa, grey', DecimalAmount::fromString('18990.00'), 2),
+                new ProductLine('CHAIR-VELVET-GRN', 'Velvet dining chair, green', DecimalAmount::fromString('2490.00'), 4),
             ],
             now: $now,
         );
 
         self::assertInstanceOf(UuidV7::class, $order->id);
-        self::assertSame('PARTNER_A', $order->partnerId);
-        self::assertSame('ORD-001', $order->orderId);
+        self::assertSame('nabytek-brno', $order->partnerId);
+        self::assertSame('WEB-100001', $order->orderId);
         self::assertSame($deliveryDate, $order->expectedDeliveryDate);
-        self::assertSame('1299.99', $order->totalValue);
+        self::assertSame('47940.00', $order->totalValue);
         self::assertSame($now, $order->createdAt);
         self::assertSame($now, $order->updatedAt);
     }
@@ -43,16 +43,16 @@ final class OrderTest extends TestCase
     public function testProductsKeepSubmissionOrderAndPointBackToTheOrder(): void
     {
         $order = self::anyOrder(products: [
-            new ProductLine('SKU-003', 'Phone Stand', DecimalAmount::fromString('49.99'), 1),
-            new ProductLine('SKU-001', 'Bluetooth Headphones', DecimalAmount::fromString('129.99'), 2),
+            new ProductLine('TABLE-OAK-160', 'Oak dining table 160 cm', DecimalAmount::fromString('12490.00'), 1),
+            new ProductLine('SOFA-OSLO-3S', 'Oslo three-seater sofa, grey', DecimalAmount::fromString('18990.00'), 2),
         ]);
 
         $products = $order->products();
 
         self::assertCount(2, $products);
-        self::assertSame(['SKU-003', 'SKU-001'], array_map(static fn ($product) => $product->productId, $products));
+        self::assertSame(['TABLE-OAK-160', 'SOFA-OSLO-3S'], array_map(static fn ($product) => $product->productId, $products));
         self::assertSame([0, 1], array_map(static fn ($product) => $product->position, $products));
-        self::assertSame('49.99', $products[0]->price);
+        self::assertSame('12490.00', $products[0]->price);
         self::assertSame(1, $products[0]->quantity);
         self::assertSame($order, $products[0]->order);
         self::assertSame($order, $products[1]->order);
@@ -67,10 +67,10 @@ final class OrderTest extends TestCase
 
     public function testChangingDeliveryDateBumpsUpdatedAtOnly(): void
     {
-        $createdAt = new DateTimeImmutable('2026-06-01T10:15:00+00:00');
+        $createdAt = new DateTimeImmutable('2026-09-21T10:15:00+00:00');
         $order = self::anyOrder(now: $createdAt);
-        $newDate = new DateTimeImmutable('2026-07-20');
-        $changedAt = new DateTimeImmutable('2026-06-02T08:00:00+00:00');
+        $newDate = new DateTimeImmutable('2026-10-19');
+        $changedAt = new DateTimeImmutable('2026-09-22T08:00:00+00:00');
 
         $order->changeExpectedDeliveryDate($newDate, $changedAt);
 
@@ -81,7 +81,7 @@ final class OrderTest extends TestCase
 
     public function testProductLineAcceptsQuantityOfOne(): void
     {
-        $line = new ProductLine('SKU-001', 'Item', DecimalAmount::fromString('1.00'), 1);
+        $line = new ProductLine('SOFA-OSLO-3S', 'Item', DecimalAmount::fromString('1.00'), 1);
 
         self::assertSame(1, $line->quantity);
     }
@@ -90,7 +90,7 @@ final class OrderTest extends TestCase
     {
         $this->expectException(InvalidOrderException::class);
 
-        new ProductLine('SKU-001', 'Item', DecimalAmount::fromString('1.00'), 0);
+        new ProductLine('SOFA-OSLO-3S', 'Item', DecimalAmount::fromString('1.00'), 0);
     }
 
     /**
@@ -99,12 +99,12 @@ final class OrderTest extends TestCase
     private static function anyOrder(?array $products = null, ?DateTimeImmutable $now = null): Order
     {
         return Order::place(
-            partnerId: 'PARTNER_A',
-            orderId: 'ORD-001',
-            expectedDeliveryDate: new DateTimeImmutable('2026-06-15'),
+            partnerId: 'nabytek-brno',
+            orderId: 'WEB-100001',
+            expectedDeliveryDate: new DateTimeImmutable('2026-10-05'),
             totalValue: DecimalAmount::fromString('100.00'),
-            products: $products ?? [new ProductLine('SKU-001', 'Item', DecimalAmount::fromString('100.00'), 1)],
-            now: $now ?? new DateTimeImmutable('2026-06-01T10:15:00+00:00'),
+            products: $products ?? [new ProductLine('SOFA-OSLO-3S', 'Item', DecimalAmount::fromString('100.00'), 1)],
+            now: $now ?? new DateTimeImmutable('2026-09-21T10:15:00+00:00'),
         );
     }
 }

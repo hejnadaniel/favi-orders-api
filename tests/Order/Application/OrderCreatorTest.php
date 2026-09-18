@@ -19,26 +19,26 @@ final class OrderCreatorTest extends TestCase
     protected function setUp(): void
     {
         $this->orders = new InMemoryOrderRepository();
-        $this->clock = new MockClock('2026-06-01T10:15:00+00:00');
+        $this->clock = new MockClock('2026-09-21T10:15:00+00:00');
         $this->creator = new OrderCreator($this->orders, $this->clock);
     }
 
     public function testStoresOrderUnderItsCompositeKeyWithValuesAsSubmitted(): void
     {
         $command = OrderFactory::createOrder(products: [
-            OrderFactory::line('SKU-001', 'Bluetooth Headphones', '129.99', 2),
-            OrderFactory::line('SKU-002', 'USB-C Cable, 2 m', '9.99', 4),
+            OrderFactory::line('SOFA-OSLO-3S', 'Oslo three-seater sofa, grey', '18990.00', 2),
+            OrderFactory::line('CHAIR-VELVET-GRN', 'Velvet dining chair, green', '2490.00', 4),
         ]);
 
         $order = $this->creator->create($command);
 
-        self::assertSame($order, $this->orders->find('PARTNER_A', 'ORD-001'));
-        self::assertSame('PARTNER_A', $order->partnerId);
-        self::assertSame('ORD-001', $order->orderId);
-        self::assertSame('2026-06-15', $order->expectedDeliveryDate->format('Y-m-d'));
-        self::assertSame('499.00', $order->totalValue);
+        self::assertSame($order, $this->orders->find('nabytek-brno', 'WEB-100001'));
+        self::assertSame('nabytek-brno', $order->partnerId);
+        self::assertSame('WEB-100001', $order->orderId);
+        self::assertSame('2026-10-05', $order->expectedDeliveryDate->format('Y-m-d'));
+        self::assertSame('47940.00', $order->totalValue);
         self::assertSame(
-            ['SKU-001', 'SKU-002'],
+            ['SOFA-OSLO-3S', 'CHAIR-VELVET-GRN'],
             array_map(static fn ($product) => $product->productId, $order->products()),
         );
     }
@@ -58,33 +58,33 @@ final class OrderCreatorTest extends TestCase
         $this->expectException(DuplicateOrderException::class);
 
         try {
-            $this->creator->create(OrderFactory::createOrder(totalValue: '999.00'));
+            $this->creator->create(OrderFactory::createOrder(totalValue: '1.00'));
         } finally {
             self::assertSame(1, $this->orders->count());
-            self::assertSame($first, $this->orders->find('PARTNER_A', 'ORD-001'));
+            self::assertSame($first, $this->orders->find('nabytek-brno', 'WEB-100001'));
             self::assertSame('100.00', $first->totalValue);
         }
     }
 
     public function testSameOrderIdIsAllowedForAnotherPartner(): void
     {
-        $this->creator->create(OrderFactory::createOrder(partnerId: 'PARTNER_A'));
+        $this->creator->create(OrderFactory::createOrder(partnerId: 'nabytek-brno'));
 
-        $this->creator->create(OrderFactory::createOrder(partnerId: 'PARTNER_B'));
+        $this->creator->create(OrderFactory::createOrder(partnerId: 'nabytek-ostrava'));
 
         self::assertSame(2, $this->orders->count());
     }
 
     public function testDuplicateExceptionNamesTheConflictingKey(): void
     {
-        $this->creator->create(OrderFactory::createOrder(partnerId: 'PARTNER_A', orderId: 'ORD-DUP'));
+        $this->creator->create(OrderFactory::createOrder(partnerId: 'nabytek-brno', orderId: 'WEB-100900'));
 
         try {
-            $this->creator->create(OrderFactory::createOrder(partnerId: 'PARTNER_A', orderId: 'ORD-DUP'));
+            $this->creator->create(OrderFactory::createOrder(partnerId: 'nabytek-brno', orderId: 'WEB-100900'));
             self::fail('DuplicateOrderException was not thrown');
         } catch (DuplicateOrderException $exception) {
-            self::assertSame('PARTNER_A', $exception->partnerId);
-            self::assertSame('ORD-DUP', $exception->orderId);
+            self::assertSame('nabytek-brno', $exception->partnerId);
+            self::assertSame('WEB-100900', $exception->orderId);
             self::assertSame(409, $exception->status());
         }
     }

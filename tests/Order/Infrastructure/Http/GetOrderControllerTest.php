@@ -24,10 +24,10 @@ final class GetOrderControllerTest extends ApiTestCase
 
     public function testUnknownOrderIsNotFound(): void
     {
-        $this->getOrder('ORD-404');
+        $this->getOrder('WEB-MISSING');
 
         self::assertProblem(404, 'order-not-found');
-        self::assertSame('Order "ORD-404" was not found for partner "PARTNER_A".', $this->responseBody()['detail']);
+        self::assertSame('Order "WEB-MISSING" was not found for partner "nabytek-brno".', $this->responseBody()['detail']);
     }
 
     public function testUnknownRouteIsAProblemToo(): void

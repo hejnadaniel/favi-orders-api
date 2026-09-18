@@ -53,7 +53,7 @@ paths:
               description: Canonical URL of the created order
               schema:
                 type: string
-                examples: ['/api/v1/partners/PARTNER_A/orders/ORD-2026-00001']
+                examples: ['/api/v1/partners/nabytek-brno/orders/WEB-104172']
           content:
             application/json:
               schema:
@@ -75,8 +75,8 @@ paths:
                     type: https://api.favi.test/problems/duplicate-order
                     title: Duplicate Order
                     status: 409
-                    detail: Order "ORD-2026-00001" already exists for partner "PARTNER_A".
-                    instance: /api/v1/partners/PARTNER_A/orders
+                    detail: Order "WEB-104172" already exists for partner "nabytek-brno".
+                    instance: /api/v1/partners/nabytek-brno/orders
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
@@ -171,7 +171,7 @@ components:
       type: string
       minLength: 1
       maxLength: 64
-      examples: ['ORD-2026-00001']
+      examples: ['WEB-104172']
 
     DecimalAmount:
       type: string
@@ -180,13 +180,13 @@ components:
         integer digits and up to 2 fractional digits, non-negative. Responses
         always carry exactly 2 fractional digits.
       pattern: '^\d{1,12}(\.\d{1,2})?$'
-      examples: ['1299.99']
+      examples: ['47940.00']
 
     DeliveryDate:
       type: string
       format: date
       description: Expected delivery date, ISO 8601 calendar date
-      examples: ['2026-06-15']
+      examples: ['2026-10-05']
 
     CreateOrderProductRequest:
       type: object
@@ -319,7 +319,7 @@ components:
                 title: Bad Request
                 status: 400
                 detail: Request payload contains invalid "json" data.
-                instance: /api/v1/partners/PARTNER_A/orders
+                instance: /api/v1/partners/nabytek-brno/orders
     UnsupportedMediaType:
       description: Request `Content-Type` is not JSON
       content:
@@ -333,7 +333,7 @@ components:
                 title: Unsupported Media Type
                 status: 415
                 detail: Unsupported format, expects "json", but "xml" given.
-                instance: /api/v1/partners/PARTNER_A/orders
+                instance: /api/v1/partners/nabytek-brno/orders
     ValidationFailed:
       description: Body is well-formed but violates the schema
       content:
@@ -347,7 +347,7 @@ components:
                 title: Validation Failed
                 status: 422
                 detail: One or more fields are invalid.
-                instance: /api/v1/partners/PARTNER_A/orders
+                instance: /api/v1/partners/nabytek-brno/orders
                 errors:
                   - pointer: /products/0/quantity
                     message: This value should be greater than or equal to 1.
@@ -363,58 +363,58 @@ components:
                 type: https://api.favi.test/problems/order-not-found
                 title: Order Not Found
                 status: 404
-                detail: Order "ORD-404" was not found for partner "PARTNER_A".
-                instance: /api/v1/partners/PARTNER_A/orders/ORD-404
+                detail: Order "WEB-MISSING" was not found for partner "nabytek-brno".
+                instance: /api/v1/partners/nabytek-brno/orders/WEB-MISSING
 
   examples:
     CreateOrderRequest:
       value:
-        orderId: ORD-2026-00001
-        expectedDeliveryDate: '2026-06-15'
-        totalValue: '1299.99'
+        orderId: WEB-104172
+        expectedDeliveryDate: '2026-10-05'
+        totalValue: '47940.00'
         products:
-          - productId: SKU-001
-            name: Bluetooth Headphones
-            price: '129.99'
+          - productId: SOFA-OSLO-3S
+            name: Oslo three-seater sofa, grey
+            price: '18990.00'
             quantity: 2
-          - productId: SKU-002
-            name: USB-C Cable, 2 m
-            price: '9.99'
+          - productId: CHAIR-VELVET-GRN
+            name: Velvet dining chair, green
+            price: '2490.00'
             quantity: 4
     PatchOrderRequest:
       value:
-        expectedDeliveryDate: '2026-07-20'
+        expectedDeliveryDate: '2026-10-19'
     Order:
       value:
-        partnerId: PARTNER_A
-        orderId: ORD-2026-00001
-        expectedDeliveryDate: '2026-06-15'
-        totalValue: '1299.99'
+        partnerId: nabytek-brno
+        orderId: WEB-104172
+        expectedDeliveryDate: '2026-10-05'
+        totalValue: '47940.00'
         products:
-          - productId: SKU-001
-            name: Bluetooth Headphones
-            price: '129.99'
+          - productId: SOFA-OSLO-3S
+            name: Oslo three-seater sofa, grey
+            price: '18990.00'
             quantity: 2
-          - productId: SKU-002
-            name: USB-C Cable, 2 m
-            price: '9.99'
+          - productId: CHAIR-VELVET-GRN
+            name: Velvet dining chair, green
+            price: '2490.00'
             quantity: 4
-        createdAt: '2026-06-01T10:15:00+00:00'
-        updatedAt: '2026-06-01T10:15:00+00:00'
+        createdAt: '2026-09-21T10:15:00+00:00'
+        updatedAt: '2026-09-21T10:15:00+00:00'
     PatchedOrder:
       value:
-        partnerId: PARTNER_A
-        orderId: ORD-2026-00001
-        expectedDeliveryDate: '2026-07-20'
-        totalValue: '1299.99'
+        partnerId: nabytek-brno
+        orderId: WEB-104172
+        expectedDeliveryDate: '2026-10-19'
+        totalValue: '47940.00'
         products:
-          - productId: SKU-001
-            name: Bluetooth Headphones
-            price: '129.99'
+          - productId: SOFA-OSLO-3S
+            name: Oslo three-seater sofa, grey
+            price: '18990.00'
             quantity: 2
-          - productId: SKU-002
-            name: USB-C Cable, 2 m
-            price: '9.99'
+          - productId: CHAIR-VELVET-GRN
+            name: Velvet dining chair, green
+            price: '2490.00'
             quantity: 4
-        createdAt: '2026-06-01T10:15:00+00:00'
-        updatedAt: '2026-06-02T08:00:00+00:00'
+        createdAt: '2026-09-21T10:15:00+00:00'
+        updatedAt: '2026-09-22T08:00:00+00:00'

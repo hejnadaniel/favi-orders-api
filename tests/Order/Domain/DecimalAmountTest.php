@@ -17,8 +17,8 @@ final class DecimalAmountTest extends TestCase
     public static function provideWellFormedAmounts(): iterable
     {
         yield 'integer gets two fractional digits' => ['100', '100.00'];
-        yield 'one fractional digit is padded' => ['129.9', '129.90'];
-        yield 'two fractional digits are kept' => ['129.99', '129.99'];
+        yield 'one fractional digit is padded' => ['2490.5', '2490.50'];
+        yield 'two fractional digits are kept' => ['2490.55', '2490.55'];
         yield 'zero is allowed' => ['0', '0.00'];
         yield 'max integer digits (12)' => ['999999999999.99', '999999999999.99'];
     }

@@ -23,16 +23,16 @@ final class PatchOrderControllerTest extends ApiTestCase
         $this->postOrder(self::orderPayload());
         $created = $this->responseBody();
 
-        $this->patchOrder(['expectedDeliveryDate' => '2026-07-20'], contentType: $contentType);
+        $this->patchOrder(['expectedDeliveryDate' => '2026-10-19'], contentType: $contentType);
 
         self::assertResponseStatusCodeSame(200);
         self::assertResponseHeaderSame('Content-Type', 'application/json');
         $body = $this->responseBody();
-        self::assertSame('2026-07-20', $body['expectedDeliveryDate']);
+        self::assertSame('2026-10-19', $body['expectedDeliveryDate']);
         self::assertSame($created['createdAt'], $body['createdAt']);
         self::assertGreaterThanOrEqual($created['updatedAt'], $body['updatedAt']);
         self::assertSame(
-            [...$created, 'expectedDeliveryDate' => '2026-07-20', 'updatedAt' => $body['updatedAt']],
+            [...$created, 'expectedDeliveryDate' => '2026-10-19', 'updatedAt' => $body['updatedAt']],
             $body,
         );
 
@@ -44,9 +44,9 @@ final class PatchOrderControllerTest extends ApiTestCase
     {
         $this->postOrder(self::orderPayload());
 
-        $this->patchOrder(['expectedDeliveryDate' => '2026-07-20']);
+        $this->patchOrder(['expectedDeliveryDate' => '2026-10-19']);
         $first = $this->responseBody();
-        $this->patchOrder(['expectedDeliveryDate' => '2026-07-20']);
+        $this->patchOrder(['expectedDeliveryDate' => '2026-10-19']);
 
         self::assertResponseStatusCodeSame(200);
         self::assertSame($first['expectedDeliveryDate'], $this->responseBody()['expectedDeliveryDate']);
@@ -54,25 +54,25 @@ final class PatchOrderControllerTest extends ApiTestCase
 
     public function testUnknownOrderIsNotFound(): void
     {
-        $this->patchOrder(['expectedDeliveryDate' => '2026-07-20'], orderId: 'NO-SUCH-ORDER');
+        $this->patchOrder(['expectedDeliveryDate' => '2026-10-19'], orderId: 'WEB-UNKNOWN');
 
         self::assertProblem(404, 'order-not-found');
         $problem = $this->responseBody();
         self::assertSame('https://api.favi.test/problems/order-not-found', $problem['type']);
         self::assertSame('Order Not Found', $problem['title']);
-        self::assertSame(self::orderPath('NO-SUCH-ORDER'), $problem['instance']);
+        self::assertSame(self::orderPath('WEB-UNKNOWN'), $problem['instance']);
     }
 
     public function testAnotherPartnerCannotTouchTheOrder(): void
     {
-        $this->postOrder(self::orderPayload(), 'PARTNER_A');
+        $this->postOrder(self::orderPayload(), 'nabytek-brno');
 
-        $this->patchOrder(['expectedDeliveryDate' => '2026-07-20'], partnerId: 'PARTNER_B');
+        $this->patchOrder(['expectedDeliveryDate' => '2026-10-19'], partnerId: 'nabytek-ostrava');
 
         self::assertProblem(404, 'order-not-found');
 
-        $this->getOrder(partnerId: 'PARTNER_A');
-        self::assertSame('2026-06-15', $this->responseBody()['expectedDeliveryDate']);
+        $this->getOrder(partnerId: 'nabytek-brno');
+        self::assertSame('2026-10-05', $this->responseBody()['expectedDeliveryDate']);
     }
 
     public function testNullDeliveryDateIsRejected(): void
@@ -95,7 +95,7 @@ final class PatchOrderControllerTest extends ApiTestCase
         self::assertSame(['/expectedDeliveryDate'], self::errorPointers($this->responseBody()));
 
         $this->getOrder();
-        self::assertSame('2026-06-15', $this->responseBody()['expectedDeliveryDate']);
+        self::assertSame('2026-10-05', $this->responseBody()['expectedDeliveryDate']);
     }
 
     public function testEmptyPatchIsRejected(): void
@@ -112,14 +112,14 @@ final class PatchOrderControllerTest extends ApiTestCase
     {
         $this->postOrder(self::orderPayload());
 
-        $this->patchOrder(['expectedDeliveryDate' => '2026-07-20', 'totalValue' => '0.01']);
+        $this->patchOrder(['expectedDeliveryDate' => '2026-10-19', 'totalValue' => '0.01']);
 
         self::assertProblem(422, 'validation-failed');
         self::assertSame(['/totalValue'], self::errorPointers($this->responseBody()));
 
         $this->getOrder();
         $body = $this->responseBody();
-        self::assertSame('1299.99', $body['totalValue']);
-        self::assertSame('2026-06-15', $body['expectedDeliveryDate']);
+        self::assertSame('47940.00', $body['totalValue']);
+        self::assertSame('2026-10-05', $body['expectedDeliveryDate']);
     }
 }

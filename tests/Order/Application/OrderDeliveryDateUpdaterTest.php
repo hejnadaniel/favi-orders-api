@@ -26,7 +26,7 @@ final class OrderDeliveryDateUpdaterTest extends TestCase
     protected function setUp(): void
     {
         $this->orders = new InMemoryOrderRepository();
-        $this->clock = new MockClock('2026-06-01T10:15:00+00:00');
+        $this->clock = new MockClock('2026-09-21T10:15:00+00:00');
         $this->existing = new OrderCreator($this->orders, $this->clock)->create(OrderFactory::createOrder());
         $this->updater = new OrderDeliveryDateUpdater($this->orders, $this->clock);
     }
@@ -35,31 +35,31 @@ final class OrderDeliveryDateUpdaterTest extends TestCase
     {
         $this->clock->modify('+1 day');
 
-        $order = $this->updater->update(new ChangeDeliveryDate('PARTNER_A', 'ORD-001', new DateTimeImmutable('2026-07-20')));
+        $order = $this->updater->update(new ChangeDeliveryDate('nabytek-brno', 'WEB-100001', new DateTimeImmutable('2026-10-19')));
 
         self::assertSame($this->existing, $order);
-        self::assertSame('2026-07-20', $order->expectedDeliveryDate->format('Y-m-d'));
+        self::assertSame('2026-10-19', $order->expectedDeliveryDate->format('Y-m-d'));
         self::assertEquals($this->clock->now(), $order->updatedAt);
-        self::assertSame('2026-06-01T10:15:00+00:00', $order->createdAt->format(DATE_ATOM));
+        self::assertSame('2026-09-21T10:15:00+00:00', $order->createdAt->format(DATE_ATOM));
     }
 
     public function testRunsInsideOneTransaction(): void
     {
-        $this->updater->update(new ChangeDeliveryDate('PARTNER_A', 'ORD-001', new DateTimeImmutable('2026-07-20')));
+        $this->updater->update(new ChangeDeliveryDate('nabytek-brno', 'WEB-100001', new DateTimeImmutable('2026-10-19')));
 
         self::assertSame(1, $this->orders->transactionsStarted);
     }
 
     public function testIsIdempotentForTheSameDate(): void
     {
-        $command = new ChangeDeliveryDate('PARTNER_A', 'ORD-001', new DateTimeImmutable('2026-07-20'));
+        $command = new ChangeDeliveryDate('nabytek-brno', 'WEB-100001', new DateTimeImmutable('2026-10-19'));
 
         $first = $this->updater->update($command);
         $updatedAtAfterFirst = $first->updatedAt;
         $second = $this->updater->update($command);
 
         self::assertSame($first, $second);
-        self::assertSame('2026-07-20', $second->expectedDeliveryDate->format('Y-m-d'));
+        self::assertSame('2026-10-19', $second->expectedDeliveryDate->format('Y-m-d'));
         self::assertEquals($updatedAtAfterFirst, $second->updatedAt);
     }
 
@@ -67,20 +67,20 @@ final class OrderDeliveryDateUpdaterTest extends TestCase
     {
         $this->expectException(OrderNotFoundException::class);
 
-        $this->updater->update(new ChangeDeliveryDate('PARTNER_A', 'NO-SUCH-ORDER', new DateTimeImmutable('2026-07-20')));
+        $this->updater->update(new ChangeDeliveryDate('nabytek-brno', 'WEB-UNKNOWN', new DateTimeImmutable('2026-10-19')));
     }
 
     public function testDoesNotLetAnotherPartnerTouchTheOrder(): void
     {
         try {
-            $this->updater->update(new ChangeDeliveryDate('PARTNER_B', 'ORD-001', new DateTimeImmutable('2026-07-20')));
+            $this->updater->update(new ChangeDeliveryDate('nabytek-ostrava', 'WEB-100001', new DateTimeImmutable('2026-10-19')));
             self::fail('OrderNotFoundException was not thrown');
         } catch (OrderNotFoundException $exception) {
-            self::assertSame('PARTNER_B', $exception->partnerId);
-            self::assertSame('ORD-001', $exception->orderId);
+            self::assertSame('nabytek-ostrava', $exception->partnerId);
+            self::assertSame('WEB-100001', $exception->orderId);
         }
 
-        self::assertSame('2026-06-15', $this->existing->expectedDeliveryDate->format('Y-m-d'));
+        self::assertSame('2026-10-05', $this->existing->expectedDeliveryDate->format('Y-m-d'));
         self::assertSame(0, $this->orders->transactionsStarted, 'a failed lookup must not open a transaction');
     }
 }

@@ -26,13 +26,13 @@ final class OrderFinderTest extends TestCase
     {
         $created = new OrderCreator($this->orders, new MockClock())->create(OrderFactory::createOrder());
 
-        self::assertSame($created, $this->finder->get('PARTNER_A', 'ORD-001'));
+        self::assertSame($created, $this->finder->get('nabytek-brno', 'WEB-100001'));
     }
 
     public function testThrowsWhenOrderDoesNotExist(): void
     {
         $this->expectException(OrderNotFoundException::class);
 
-        $this->finder->get('PARTNER_A', 'ORD-404');
+        $this->finder->get('nabytek-brno', 'WEB-MISSING');
     }
 }

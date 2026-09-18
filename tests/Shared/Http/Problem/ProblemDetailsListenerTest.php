@@ -35,15 +35,15 @@ final class ProblemDetailsListenerTest extends TestCase
 
     public function testDomainProblemMapsToItsOwnStatusTitleAndType(): void
     {
-        $event = $this->handle(new DuplicateOrderException('PARTNER_A', 'ORD-1'), '/api/v1/partners/PARTNER_A/orders');
+        $event = $this->handle(new DuplicateOrderException('nabytek-brno', 'WEB-1'), '/api/v1/partners/nabytek-brno/orders');
 
         self::assertSame(409, $event->getResponse()?->getStatusCode());
         self::assertSame([
             'type' => self::BASE_URI . '/duplicate-order',
             'title' => 'Duplicate Order',
             'status' => 409,
-            'detail' => 'Order "ORD-1" already exists for partner "PARTNER_A".',
-            'instance' => '/api/v1/partners/PARTNER_A/orders',
+            'detail' => 'Order "WEB-1" already exists for partner "nabytek-brno".',
+            'instance' => '/api/v1/partners/nabytek-brno/orders',
         ], self::body($event));
     }
 
@@ -55,7 +55,7 @@ final class ProblemDetailsListenerTest extends TestCase
         ]);
         $exception = new HttpException(422, 'ignored', new ValidationFailedException(null, $violations));
 
-        $event = $this->handle($exception, '/api/v1/partners/PARTNER_A/orders');
+        $event = $this->handle($exception, '/api/v1/partners/nabytek-brno/orders');
 
         $body = self::body($event);
         self::assertSame(422, $body['status']);

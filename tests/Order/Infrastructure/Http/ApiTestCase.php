@@ -15,8 +15,8 @@ use const JSON_THROW_ON_ERROR;
  */
 abstract class ApiTestCase extends WebTestCase
 {
-    protected const string PARTNER_ID = 'PARTNER_A';
-    protected const string ORDER_ID = 'ORD-2026-00001';
+    protected const string PARTNER_ID = 'nabytek-brno';
+    protected const string ORDER_ID = 'WEB-104172';
 
     protected KernelBrowser $client;
 
@@ -34,11 +34,11 @@ abstract class ApiTestCase extends WebTestCase
     {
         return [
             'orderId' => self::ORDER_ID,
-            'expectedDeliveryDate' => '2026-06-15',
-            'totalValue' => '1299.99',
+            'expectedDeliveryDate' => '2026-10-05',
+            'totalValue' => '47940.00',
             'products' => [
-                ['productId' => 'SKU-001', 'name' => 'Bluetooth Headphones', 'price' => '129.99', 'quantity' => 2],
-                ['productId' => 'SKU-002', 'name' => 'USB-C Cable, 2 m', 'price' => '9.99', 'quantity' => 4],
+                ['productId' => 'SOFA-OSLO-3S', 'name' => 'Oslo three-seater sofa, grey', 'price' => '18990.00', 'quantity' => 2],
+                ['productId' => 'CHAIR-VELVET-GRN', 'name' => 'Velvet dining chair, green', 'price' => '2490.00', 'quantity' => 4],
             ],
             ...$overrides,
         ];

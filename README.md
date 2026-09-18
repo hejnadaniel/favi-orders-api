@@ -59,7 +59,7 @@ identified by the URL only; the body never repeats it.
 ### Create an order
 
 ```bash
-curl -sS -i -X POST http://127.0.0.1:8000/api/v1/partners/PARTNER_A/orders \
+curl -sS -i -X POST http://127.0.0.1:8000/api/v1/partners/nabytek-brno/orders \
   -H 'Content-Type: application/json' \
   --data @docs/examples/create-order.json
 ```
@@ -67,27 +67,27 @@ curl -sS -i -X POST http://127.0.0.1:8000/api/v1/partners/PARTNER_A/orders \
 ```http
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /api/v1/partners/PARTNER_A/orders/ORD-2026-00001
+Location: /api/v1/partners/nabytek-brno/orders/WEB-104172
 
-{"partnerId":"PARTNER_A","orderId":"ORD-2026-00001","expectedDeliveryDate":"2026-06-15","totalValue":"1299.99","products":[{"productId":"SKU-001","name":"Bluetooth Headphones","price":"129.99","quantity":2},{"productId":"SKU-002","name":"USB-C Cable, 2 m","price":"9.99","quantity":4}],"createdAt":"2026-09-17T15:56:42+00:00","updatedAt":"2026-09-17T15:56:42+00:00"}
+{"partnerId":"nabytek-brno","orderId":"WEB-104172","expectedDeliveryDate":"2026-10-05","totalValue":"47940.00","products":[{"productId":"SOFA-OSLO-3S","name":"Oslo three-seater sofa, grey","price":"18990.00","quantity":2},{"productId":"CHAIR-VELVET-GRN","name":"Velvet dining chair, green","price":"2490.00","quantity":4}],"createdAt":"2026-09-17T15:56:42+00:00","updatedAt":"2026-09-17T15:56:42+00:00"}
 ```
 
 Sending the same `(partnerId, orderId)` again never overwrites anything:
 
 ```json
-{"type":"https://api.favi.test/problems/duplicate-order","title":"Duplicate Order","status":409,"detail":"Order \"ORD-2026-00001\" already exists for partner \"PARTNER_A\".","instance":"/api/v1/partners/PARTNER_A/orders"}
+{"type":"https://api.favi.test/problems/duplicate-order","title":"Duplicate Order","status":409,"detail":"Order \"WEB-104172\" already exists for partner \"nabytek-brno\".","instance":"/api/v1/partners/nabytek-brno/orders"}
 ```
 
 Validation failures carry one JSON Pointer per field:
 
 ```json
-{"type":"https://api.favi.test/problems/validation-failed","title":"Validation Failed","status":422,"detail":"One or more fields are invalid.","instance":"/api/v1/partners/PARTNER_A/orders","errors":[{"pointer":"/totalValue","message":"This value should be a decimal amount with at most 12 integer and 2 fractional digits."},{"pointer":"/products/0/quantity","message":"This value should be greater than or equal to 1."}]}
+{"type":"https://api.favi.test/problems/validation-failed","title":"Validation Failed","status":422,"detail":"One or more fields are invalid.","instance":"/api/v1/partners/nabytek-brno/orders","errors":[{"pointer":"/totalValue","message":"This value should be a decimal amount with at most 12 integer and 2 fractional digits."},{"pointer":"/products/0/quantity","message":"This value should be greater than or equal to 1."}]}
 ```
 
 ### Change the expected delivery date
 
 ```bash
-curl -sS -i -X PATCH http://127.0.0.1:8000/api/v1/partners/PARTNER_A/orders/ORD-2026-00001 \
+curl -sS -i -X PATCH http://127.0.0.1:8000/api/v1/partners/nabytek-brno/orders/WEB-104172 \
   -H 'Content-Type: application/merge-patch+json' \
   --data @docs/examples/patch-order.json
 ```
@@ -99,7 +99,7 @@ unknown order (including one that belongs to another partner) with `404`.
 ### Read an order
 
 ```bash
-curl -sS http://127.0.0.1:8000/api/v1/partners/PARTNER_A/orders/ORD-2026-00001
+curl -sS http://127.0.0.1:8000/api/v1/partners/nabytek-brno/orders/WEB-104172
 ```
 
 | Situation | Status |

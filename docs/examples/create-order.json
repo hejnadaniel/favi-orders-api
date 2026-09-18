@@ -1,9 +1,9 @@
 {
-  "orderId": "ORD-2026-00001",
-  "expectedDeliveryDate": "2026-06-15",
-  "totalValue": "1299.99",
+  "orderId": "WEB-104172",
+  "expectedDeliveryDate": "2026-10-05",
+  "totalValue": "47940.00",
   "products": [
-    {"productId": "SKU-001", "name": "Bluetooth Headphones", "price": "129.99", "quantity": 2},
-    {"productId": "SKU-002", "name": "USB-C Cable, 2 m", "price": "9.99", "quantity": 4}
+    {"productId": "SOFA-OSLO-3S", "name": "Oslo three-seater sofa, grey", "price": "18990.00", "quantity": 2},
+    {"productId": "CHAIR-VELVET-GRN", "name": "Velvet dining chair, green", "price": "2490.00", "quantity": 4}
   ]
 }
