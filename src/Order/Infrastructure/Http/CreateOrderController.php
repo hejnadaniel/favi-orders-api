@@ -26,12 +26,7 @@ final class CreateOrderController
     ) {
     }
 
-    #[Route(
-        path: '/api/v1/partners/{partnerId}/orders',
-        name: 'api_v1_order_create',
-        requirements: ['partnerId' => '[^/]{1,64}'],
-        methods: ['POST'],
-    )]
+    #[Route('/partners/{partnerId}/orders', name: 'order_create', methods: ['POST'])]
     public function __invoke(
         string $partnerId,
         #[MapRequestPayload(acceptFormat: 'json')]

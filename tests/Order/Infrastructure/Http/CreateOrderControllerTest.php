@@ -78,6 +78,37 @@ final class CreateOrderControllerTest extends ApiTestCase
         self::assertResponseHeaderSame('Location', self::orderPath(partnerId: 'nabytek-ostrava'));
     }
 
+    public function testAcceptsIdentifiersAtTheLengthLimitAndWithNonAsciiCharacters(): void
+    {
+        $partnerId = str_repeat('ž', 64);
+        $orderId = 'objednávka č. 17';
+
+        $this->postOrder(self::orderPayload(['orderId' => $orderId]), rawurlencode($partnerId));
+
+        self::assertResponseStatusCodeSame(201);
+        $body = $this->responseBody();
+        self::assertSame($partnerId, $body['partnerId']);
+        self::assertSame($orderId, $body['orderId']);
+
+        $this->getOrder(rawurlencode($orderId), rawurlencode($partnerId));
+        self::assertResponseStatusCodeSame(200);
+    }
+
+    public function testPartnerIdOnePastTheLengthLimitMatchesNoRoute(): void
+    {
+        $this->postOrder(self::orderPayload(), str_repeat('p', 65));
+
+        self::assertProblem(404, 'not-found');
+    }
+
+    public function testOrderIdOnePastTheLengthLimitIsAValidationError(): void
+    {
+        $this->postOrder(self::orderPayload(['orderId' => str_repeat('o', 65)]));
+
+        self::assertProblem(422, 'validation-failed');
+        self::assertSame(['/orderId'], self::errorPointers($this->responseBody()));
+    }
+
     public function testRejectsNegativeTotalValueWithFieldPointer(): void
     {
         $this->postOrder(self::orderPayload(['totalValue' => '-1.00']));

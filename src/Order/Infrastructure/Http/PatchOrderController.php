@@ -21,12 +21,7 @@ final class PatchOrderController
     ) {
     }
 
-    #[Route(
-        path: '/api/v1/partners/{partnerId}/orders/{orderId}',
-        name: 'api_v1_order_patch',
-        requirements: ['partnerId' => '[^/]{1,64}', 'orderId' => '[^/]{1,64}'],
-        methods: ['PATCH'],
-    )]
+    #[Route('/partners/{partnerId}/orders/{orderId}', name: 'order_patch', methods: ['PATCH'])]
     public function __invoke(
         string $partnerId,
         string $orderId,

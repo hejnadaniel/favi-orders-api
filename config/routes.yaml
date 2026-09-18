@@ -1,5 +1,13 @@
-controllers:
+api_v1:
     resource:
         path: ../src/Order/Infrastructure/Http/
         namespace: App\Order\Infrastructure\Http
     type: attribute
+    prefix: /api/v1
+    name_prefix: api_v1_
+    format: json
+    stateless: true
+    utf8: true
+    requirements:
+        partnerId: '[^/]{1,64}'
+        orderId: '[^/]{1,64}'

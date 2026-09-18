@@ -16,12 +16,7 @@ final class GetOrderController
     ) {
     }
 
-    #[Route(
-        path: '/api/v1/partners/{partnerId}/orders/{orderId}',
-        name: 'api_v1_order_get',
-        requirements: ['partnerId' => '[^/]{1,64}', 'orderId' => '[^/]{1,64}'],
-        methods: ['GET'],
-    )]
+    #[Route('/partners/{partnerId}/orders/{orderId}', name: 'order_get', methods: ['GET'])]
     public function __invoke(string $partnerId, string $orderId): JsonResponse
     {
         return new JsonResponse(OrderResponse::fromOrder($this->orderFinder->get($partnerId, $orderId)));
