@@ -9,10 +9,6 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 use const JSON_THROW_ON_ERROR;
 
-/**
- * Shared HTTP helpers for the functional suite. Every test runs inside a
- * transaction that dama/doctrine-test-bundle rolls back afterwards.
- */
 abstract class ApiTestCase extends WebTestCase
 {
     protected const string PARTNER_ID = 'nabytek-brno';

@@ -6,9 +6,6 @@ namespace App\Order\Domain;
 
 use App\Order\Domain\Exception\InvalidOrderException;
 
-/**
- * One product line as submitted by the partner, before it belongs to an order.
- */
 final readonly class ProductLine
 {
     /**

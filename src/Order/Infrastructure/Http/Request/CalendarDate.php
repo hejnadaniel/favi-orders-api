@@ -8,10 +8,6 @@ use DateTimeImmutable;
 use DateTimeZone;
 use LogicException;
 
-/**
- * Converts a request date that already passed `Assert\Date` into the
- * immutable, time-less value the application layer expects.
- */
 final class CalendarDate
 {
     public static function fromValidated(string $date): DateTimeImmutable

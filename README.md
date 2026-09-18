@@ -81,7 +81,7 @@ Sending the same `(partnerId, orderId)` again never overwrites anything:
 Validation failures carry one JSON Pointer per field:
 
 ```json
-{"type":"https://api.favi.test/problems/validation-failed","title":"Validation Failed","status":422,"detail":"One or more fields are invalid.","instance":"/api/v1/partners/nabytek-brno/orders","errors":[{"pointer":"/totalValue","message":"This value should be a decimal amount with at most 12 integer and 2 fractional digits."},{"pointer":"/products/0/quantity","message":"This value should be greater than or equal to 1."}]}
+{"type":"https://api.favi.test/problems/validation-failed","title":"Validation Failed","status":422,"detail":"One or more fields are invalid.","instance":"/api/v1/partners/nabytek-brno/orders","errors":[{"pointer":"/totalValue","message":"This value should be a non-negative decimal with at most 12 integer and 2 fractional digits."},{"pointer":"/products/0/quantity","message":"This value should be greater than or equal to 1."}]}
 ```
 
 ### Change the expected delivery date
@@ -132,7 +132,7 @@ src/
       Http/           one controller per operation, request and response DTOs
   Shared/
     Problem/          Problem: contract between exceptions and the HTTP layer
-    Http/             ProblemDetailsListener, MergePatchJsonRequestListener
+    Http/Problem/     ProblemDetailsListener
 ```
 
 - The domain owns the repository interface. Doctrine is one adapter behind it;
@@ -163,7 +163,7 @@ all three operations, including every documented error response.
 
 ```
 composer test
-PHPUnit 13, 64 tests, 0 failures
+PHPUnit 13, 67 tests, 0 failures
 ```
 
 ## Design decisions
@@ -188,7 +188,9 @@ controller and one use case.
 
 **Amounts are decimal strings, not floats and not a Money library.** Doctrine
 `numeric(14, 2)` maps to a PHP `string`; `DecimalAmount` validates and
-normalises it. No `brick/money`: the assignment has no currency, so there is
+normalises it. Its precision and scale constants drive both the column mapping
+and the request validation, so the accepted format is exactly what the column
+can store without rounding or overflow. No `brick/money`: the assignment has no currency, so there is
 nothing for a Money type to protect, and the library would add a custom
 Doctrine type, a normalizer and validators for no benefit within 8 hours.
 
@@ -234,7 +236,3 @@ readonly DTOs, asymmetric visibility on entities instead of getters, PHPStan at
 - Domain events (`OrderPlaced`, `DeliveryDateChanged`) once a second consumer
   exists; today nothing would listen.
 - List endpoint with cursor pagination, if FAVI needs read-back at scale.
-
-## Time spent
-
-See [`docs/time-log.md`](docs/time-log.md).

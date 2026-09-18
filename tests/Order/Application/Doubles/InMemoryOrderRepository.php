@@ -8,13 +8,6 @@ use App\Order\Domain\Exception\DuplicateOrderException;
 use App\Order\Domain\Order;
 use App\Order\Domain\OrderRepository;
 
-/**
- * Working in-memory implementation of the domain repository contract.
- *
- * Mirrors the Doctrine adapter's observable behaviour: `add()` throws on a
- * taken composite key, `find()` returns null when missing. Also records how
- * many transactions were opened so use cases can prove they run inside one.
- */
 final class InMemoryOrderRepository implements OrderRepository
 {
     public private(set) int $transactionsStarted = 0;

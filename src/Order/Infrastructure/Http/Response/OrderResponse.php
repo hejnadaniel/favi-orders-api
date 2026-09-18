@@ -7,10 +7,6 @@ namespace App\Order\Infrastructure\Http\Response;
 use App\Order\Domain\Order;
 use DateTimeInterface;
 
-/**
- * Public representation of an order. Decoupled from the entity so that the
- * storage model can change without breaking the v1 contract.
- */
 final readonly class OrderResponse
 {
     /**

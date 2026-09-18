@@ -1,12 +1,3 @@
-# PHPStan configuration.
-#
-# phpstan-strict-rules, phpstan-deprecation-rules, phpstan-symfony,
-# phpstan-doctrine and phpstan-phpunit register themselves through
-# phpstan/extension-installer, so there is no `includes:` block.
-#
-# phpstan-symfony reads the compiled dev container, so `bin/console cache:warmup`
-# has to run first. `composer stan` does that.
-
 parameters:
     level: max
 
@@ -15,7 +6,6 @@ parameters:
         - tests
 
     excludePaths:
-        # Kernel loaders used by the Symfony and Doctrine extensions themselves.
         - tests/console-application.php
         - tests/object-manager.php
 

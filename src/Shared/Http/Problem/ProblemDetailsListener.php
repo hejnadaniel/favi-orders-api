@@ -15,14 +15,6 @@ use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Serializer\Exception\ExtraAttributesException;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 
-/**
- * Turns every uncaught exception into an RFC 9457 problem-details response.
- *
- * Three sources, one shape: domain exceptions implementing {@see Problem},
- * request-mapping failures raised by Symfony (validation, malformed body,
- * unsupported media type, routing) and anything else, which becomes an opaque
- * 500 so that no internals leak to partners.
- */
 #[AsEventListener(event: KernelEvents::EXCEPTION)]
 final class ProblemDetailsListener
 {
@@ -134,10 +126,6 @@ final class ProblemDetailsListener
         return Response::$statusTexts[$status] ?? 'HTTP Error';
     }
 
-    /**
-     * Symfony property path (`products[0].quantity`) to RFC 6901 JSON Pointer
-     * (`/products/0/quantity`).
-     */
     private static function jsonPointer(string $propertyPath): string
     {
         return '/' . str_replace(['[', ']', '.'], ['/', '', '/'], $propertyPath);

@@ -3,6 +3,5 @@ services:
 ###> doctrine/doctrine-bundle ###
   database:
     ports:
-      # Override with POSTGRES_HOST_PORT when 5432 is taken on the host.
       - "${POSTGRES_HOST_PORT:-5432}:5432"
 ###< doctrine/doctrine-bundle ###

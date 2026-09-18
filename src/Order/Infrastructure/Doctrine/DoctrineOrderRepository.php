@@ -24,8 +24,6 @@ final class DoctrineOrderRepository implements OrderRepository
         try {
             $this->entityManager->flush();
         } catch (UniqueConstraintViolationException $exception) {
-            // WHY: the unique index is the only race-proof guard; the pre-check in
-            // the use case can miss two concurrent submissions of the same order.
             throw new DuplicateOrderException($order->partnerId, $order->orderId, $exception);
         }
     }

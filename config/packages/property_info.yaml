@@ -1,6 +1,3 @@
 framework:
     property_info:
-        # Request DTOs are readonly classes with promoted constructor properties;
-        # nested collections such as `list<CreateOrderProductRequest>` are typed
-        # through constructor docblocks, which needs the constructor extractor.
         with_constructor_extractor: true
