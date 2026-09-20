@@ -6,6 +6,34 @@ PHP 8.4, Symfony 8.1, Doctrine ORM 3, PostgreSQL 16.
 Kontrakt: [`docs/openapi.yaml`](docs/openapi.yaml), psaný před kódem.
 Ukázková těla: [`docs/examples/`](docs/examples).
 
+## Rozhodnutí
+
+- **PUT, ne PATCH.** Datum doručení má vlastní sub-resource, tělo je jeho celá
+  reprezentace. Zkoušel jsem i `PATCH /orders/{id}` s merge patchem; vyplatí se
+  až u více měnitelných polí, u jednoho se platí za obecnost, kterou nikdo
+  nevyužije. Kdyby polí přibylo, vrátil bych se k PATCH.
+- **GET navíc.** Zadání chce dva endpointy. `201` má nést `Location` a
+  `Location` vracející 405 je rozbitý kontrakt, takže čtení dopisuji.
+- **Peníze bez knihovny.** Částky jsou `string` end to end, v databázi
+  `numeric(14, 2)`, nikde `float`. `brick/math` by dal typovou záruku, že nad
+  částkou nikdo nezavolá float operaci, ale stojí závislost navíc plus vlastní
+  Doctrine typ, normalizer a constrainty. Na ukládání bez počítání to nestojí
+  za to. Jakmile by se částky sčítaly nebo násobily sazbou, přešel bych na ni.
+- **Bez měny a DPH.** Zadání je nezmiňuje. Cena s implicitně předpokládanou
+  měnou se rozbije o prvního partnera v eurech a oprava je pak migrace dat, ne
+  změna modelu. Správně měnu nese objednávka, řádky ji dědí a kurz se fixuje
+  k okamžiku vzniku.
+- **`totalValue` se ukládá, jak přišla.** Nedopočítává se ani neporovnává se
+  součtem řádků, protože rozdíl nemusí být chyba, může jít o slevu nebo dopravu.
+  V provozu bych na rozdíl logoval metriku, ale request nezamítal.
+- **Datum v minulosti projde.** Zpětné opravy jsou legitimní, kontrolu úmyslu
+  má dělat klient. Neexistující datum jako `2026-02-30` neprojde:
+  validuje se jako řetězec dřív, než ho PHP tiše překlopí na březen.
+- **partnerId v URL.** V provozu by ho dodával token, ne klient. Autentizace je
+  mimo zadání.
+- **Bez audit logu.** V B2B by patřil mezi první věci, ale bez autentizace by
+  bylo "kdo" konstanta, takže mrtvá tabulka.
+
 ## Spuštění
 
 Potřeba je PHP 8.4 (`pdo_pgsql`, `intl`, `mbstring`), Composer, Docker a pro
@@ -125,55 +153,6 @@ src/
   se třemi metodami, do listeneru se nesahá.
 - Interní klíč je UUID v7, navenek se používá `(partnerId, orderId)`.
 - Produktové řádky mají `position`, takže se čtou v pořadí odeslání.
-
-## Testy a co pokrývají
-
-Unit testy nad doménou a službami (`tests/Entity`, `tests/ValueObject`,
-`tests/Service`) běží v milisekundách a pokrývají šťastné i nešťastné cesty,
-hranice, idempotenci a výjimky. To je ta část ze zadání.
-
-Integrační `WebTestCase` na všechny tři endpointy (`tests/Functional`) projde
-celý HTTP cyklus proti Postgresu včetně všech chybových stavů. To je bonus.
-`dama/doctrine-test-bundle` obalí každý test transakcí a rollbackne ji, takže
-na pořadí nezáleží.
-
-## Rozhodnutí
-
-- **PUT, ne PATCH.** Datum doručení má vlastní sub-resource, tělo je jeho celá
-  reprezentace. Zkoušel jsem i `PATCH /orders/{id}` s merge patchem; vyplatí se
-  až u více měnitelných polí, u jednoho se platí za obecnost, kterou nikdo
-  nevyužije. Kdyby polí přibylo, vrátil bych se k PATCH.
-- **GET navíc.** Zadání chce dva endpointy. `201` má nést `Location` a
-  `Location` vracející 405 je rozbitý kontrakt, takže čtení dopisuji.
-- **Peníze bez knihovny.** Částky jsou `string` end to end, v databázi
-  `numeric(14, 2)`, nikde `float`. `brick/math` by dal typovou záruku, že nad
-  částkou nikdo nezavolá float operaci, ale stojí závislost navíc plus vlastní
-  Doctrine typ, normalizer a constrainty. Na ukládání bez počítání to nestojí
-  za to. Jakmile by se částky sčítaly nebo násobily sazbou, přešel bych na ni.
-- **Bez měny a DPH.** Zadání je nezmiňuje. Cena s implicitně předpokládanou
-  měnou se rozbije o prvního partnera v eurech a oprava je pak migrace dat, ne
-  změna modelu. Správně měnu nese objednávka, řádky ji dědí a kurz se fixuje
-  k okamžiku vzniku.
-- **`totalValue` se ukládá, jak přišla.** Nedopočítává se ani neporovnává se
-  součtem řádků, protože rozdíl nemusí být chyba, může jít o slevu nebo dopravu.
-  V provozu bych na rozdíl logoval metriku, ale request nezamítal.
-- **Datum v minulosti projde.** Zpětné opravy jsou legitimní, kontrolu úmyslu
-  má dělat klient. Neexistující datum jako `2026-02-30` neprojde:
-  validuje se jako řetězec dřív, než ho PHP tiše překlopí na březen.
-- **partnerId v URL.** V provozu by ho dodával token, ne klient. Autentizace je
-  mimo zadání.
-- **Bez audit logu.** V B2B by patřil mezi první věci, ale bez autentizace by
-  bylo "kdo" konstanta, takže mrtvá tabulka.
-
-## Na co jsem narazil
-
-- Symfony 8.0 neumí vygenerovat migraci: doctrine-bridge volá `setSchema()` bez
-  podmínky a ORM 3.7 to na DBAL 4.4 odmítne. Verze 8.1 to řeší.
-- Serializer nedenormalizoval vnořené produkty, protože `list<...>` je jen
-  v docblocku. Chtělo to `with_constructor_extractor` a phpdoc parser.
-- Dvě díry ve validaci končily pětistovkou: množství nad rozsah integer sloupce
-  spadlo až v Postgresu, objednávka s desítkami tisíc řádků vyčerpala paměť.
-  Obojí teď vrací 422, meze jsou milion kusů a tisíc položek.
 
 ## Coding standard
 
