@@ -9,12 +9,12 @@ doctrine:
             Doctrine\DBAL\Platforms\PostgreSQLPlatform: identity
         auto_mapping: true
         mappings:
-            Order:
+            App:
                 type: attribute
                 is_bundle: false
-                dir: '%kernel.project_dir%/src/Order/Domain'
-                prefix: 'App\Order\Domain'
-                alias: Order
+                dir: '%kernel.project_dir%/src/Entity'
+                prefix: 'App\Entity'
+                alias: App
 
 when@test:
     doctrine:

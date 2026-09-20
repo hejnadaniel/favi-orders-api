@@ -4,8 +4,14 @@ info:
   version: 1.0.0
   description: |
     REST API through which partner shops submit their orders and later change
-    the expected delivery date. Endpoints are added in the implementation
-    branch; this file is the contract and is written before the code.
+    the expected delivery date.
+
+    Partners are identified by the `partnerId` path segment. There is no
+    authentication in this version (out of scope by assignment); the API stores
+    the data exactly as it arrived.
+
+    All error responses use RFC 9457 Problem Details
+    (`application/problem+json`).
   contact:
     name: Daniel Hejna
 servers:
@@ -14,4 +20,404 @@ servers:
 tags:
   - name: Orders
     description: Partner orders
-paths: {}
+
+paths:
+  /api/v1/partners/{partnerId}/orders:
+    parameters:
+      - $ref: '#/components/parameters/PartnerId'
+    post:
+      tags: [Orders]
+      operationId: createOrder
+      summary: Submit a new order
+      description: |
+        Creates an order under the partner namespace. The pair
+        `(partnerId, orderId)` is unique; submitting it again returns `409`
+        and never overwrites the stored order.
+
+        `totalValue` is stored as sent. It is neither recomputed from the
+        product lines nor verified against them.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+            examples:
+              headphones:
+                $ref: '#/components/examples/CreateOrderRequest'
+      responses:
+        '201':
+          description: Order created
+          headers:
+            Location:
+              description: Canonical URL of the created order
+              schema:
+                type: string
+                examples: ['/api/v1/partners/PRT-1042/orders/WEB-104172']
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+              examples:
+                headphones:
+                  $ref: '#/components/examples/Order'
+        '400':
+          $ref: '#/components/responses/MalformedRequest'
+        '409':
+          description: An order with the same `partnerId` and `orderId` already exists
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                duplicate:
+                  value:
+                    type: https://api.favi.test/problems/duplicate-order
+                    title: Duplicate Order
+                    status: 409
+                    detail: Order "WEB-104172" already exists for partner "PRT-1042".
+                    instance: /api/v1/partners/PRT-1042/orders
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+
+  /api/v1/partners/{partnerId}/orders/{orderId}:
+    parameters:
+      - $ref: '#/components/parameters/PartnerId'
+      - $ref: '#/components/parameters/OrderId'
+    get:
+      tags: [Orders]
+      operationId: getOrder
+      summary: Read an order
+      description: Returns the stored order. The `Location` header of `createOrder` points here.
+      responses:
+        '200':
+          description: The order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+              examples:
+                headphones:
+                  $ref: '#/components/examples/Order'
+        '404':
+          $ref: '#/components/responses/OrderNotFound'
+
+  /api/v1/partners/{partnerId}/orders/{orderId}/delivery-date:
+    parameters:
+      - $ref: '#/components/parameters/PartnerId'
+      - $ref: '#/components/parameters/OrderId'
+    put:
+      tags: [Orders]
+      operationId: changeOrderDeliveryDate
+      summary: Change the expected delivery date
+      description: |
+        Replaces the expected delivery date of an existing order. The date is
+        the whole representation of this sub-resource, so it is required and
+        must not be `null`. Fields outside the contract are rejected.
+
+        The request is idempotent: sending the same body twice leaves the order
+        in the same state.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeOrderDeliveryDateRequest'
+            examples:
+              postpone:
+                $ref: '#/components/examples/ChangeOrderDeliveryDateRequest'
+      responses:
+        '200':
+          description: The updated order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+              examples:
+                postponed:
+                  $ref: '#/components/examples/PatchedOrder'
+        '400':
+          $ref: '#/components/responses/MalformedRequest'
+        '404':
+          $ref: '#/components/responses/OrderNotFound'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+
+components:
+  parameters:
+    PartnerId:
+      name: partnerId
+      in: path
+      required: true
+      description: |
+        Partner-side identifier. Any string of 1 to 64 characters, including a
+        UUID; the examples use a short opaque id.
+      schema:
+        $ref: '#/components/schemas/ExternalId'
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      description: Partner-side order identifier, any format, 1 to 64 characters
+      schema:
+        $ref: '#/components/schemas/ExternalId'
+
+  schemas:
+    ExternalId:
+      type: string
+      minLength: 1
+      maxLength: 64
+      examples: ['WEB-104172']
+
+    DecimalAmount:
+      type: string
+      description: |
+        Decimal number as a string to avoid floating point loss. Up to 12
+        integer digits and up to 2 fractional digits, non-negative. Responses
+        always carry exactly 2 fractional digits.
+      pattern: '^\d{1,12}(\.\d{1,2})?$'
+      examples: ['47940.00']
+
+    DeliveryDate:
+      type: string
+      format: date
+      description: Expected delivery date, ISO 8601 calendar date
+      examples: ['2026-10-05']
+
+    CreateOrderProductRequest:
+      type: object
+      additionalProperties: false
+      required: [productId, name, price, quantity]
+      properties:
+        productId:
+          $ref: '#/components/schemas/ExternalId'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        price:
+          $ref: '#/components/schemas/DecimalAmount'
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 1000000
+
+    CreateOrderRequest:
+      type: object
+      additionalProperties: false
+      required: [orderId, expectedDeliveryDate, totalValue, products]
+      properties:
+        orderId:
+          $ref: '#/components/schemas/ExternalId'
+        expectedDeliveryDate:
+          $ref: '#/components/schemas/DeliveryDate'
+        totalValue:
+          $ref: '#/components/schemas/DecimalAmount'
+        products:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/CreateOrderProductRequest'
+
+    ChangeOrderDeliveryDateRequest:
+      type: object
+      additionalProperties: false
+      required: [expectedDeliveryDate]
+      properties:
+        expectedDeliveryDate:
+          $ref: '#/components/schemas/DeliveryDate'
+
+    OrderProduct:
+      type: object
+      required: [productId, name, price, quantity]
+      properties:
+        productId:
+          $ref: '#/components/schemas/ExternalId'
+        name:
+          type: string
+        price:
+          $ref: '#/components/schemas/DecimalAmount'
+        quantity:
+          type: integer
+          minimum: 1
+
+    Order:
+      type: object
+      required: [partnerId, orderId, expectedDeliveryDate, totalValue, products, createdAt, updatedAt]
+      properties:
+        partnerId:
+          $ref: '#/components/schemas/ExternalId'
+        orderId:
+          $ref: '#/components/schemas/ExternalId'
+        expectedDeliveryDate:
+          $ref: '#/components/schemas/DeliveryDate'
+        totalValue:
+          $ref: '#/components/schemas/DecimalAmount'
+        products:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/OrderProduct'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProblemDetails:
+      type: object
+      description: RFC 9457 Problem Details
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+          description: Stable identifier of the problem class
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          description: Path of the request that produced the problem
+
+    ValidationProblemDetails:
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          required: [errors]
+          properties:
+            errors:
+              type: array
+              items:
+                type: object
+                required: [pointer, message]
+                properties:
+                  pointer:
+                    type: string
+                    description: JSON Pointer (RFC 6901) to the offending field
+                  message:
+                    type: string
+
+  responses:
+    MalformedRequest:
+      description: Body is not valid JSON
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            malformed:
+              value:
+                type: https://api.favi.test/problems/malformed-request
+                title: Bad Request
+                status: 400
+                detail: Request payload contains invalid "json" data.
+                instance: /api/v1/partners/PRT-1042/orders
+    UnsupportedMediaType:
+      description: Request `Content-Type` is not JSON
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            xml:
+              value:
+                type: https://api.favi.test/problems/unsupported-media-type
+                title: Unsupported Media Type
+                status: 415
+                detail: Unsupported format, expects "json", but "xml" given.
+                instance: /api/v1/partners/PRT-1042/orders
+    ValidationFailed:
+      description: Body is well-formed but violates the schema
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblemDetails'
+          examples:
+            quantity:
+              value:
+                type: https://api.favi.test/problems/validation-failed
+                title: Validation Failed
+                status: 422
+                detail: One or more fields are invalid.
+                instance: /api/v1/partners/PRT-1042/orders
+                errors:
+                  - pointer: /products/0/quantity
+                    message: This value should be greater than or equal to 1.
+    OrderNotFound:
+      description: No order with this `orderId` exists for this partner
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            missing:
+              value:
+                type: https://api.favi.test/problems/order-not-found
+                title: Order Not Found
+                status: 404
+                detail: Order "WEB-MISSING" was not found for partner "PRT-1042".
+                instance: /api/v1/partners/PRT-1042/orders/WEB-MISSING
+
+  examples:
+    CreateOrderRequest:
+      value:
+        orderId: WEB-104172
+        expectedDeliveryDate: '2026-10-05'
+        totalValue: '47940.00'
+        products:
+          - productId: SOFA-OSLO-3S
+            name: Oslo three-seater sofa, grey
+            price: '18990.00'
+            quantity: 2
+          - productId: CHAIR-VELVET-GRN
+            name: Velvet dining chair, green
+            price: '2490.00'
+            quantity: 4
+    ChangeOrderDeliveryDateRequest:
+      value:
+        expectedDeliveryDate: '2026-10-19'
+    Order:
+      value:
+        partnerId: PRT-1042
+        orderId: WEB-104172
+        expectedDeliveryDate: '2026-10-05'
+        totalValue: '47940.00'
+        products:
+          - productId: SOFA-OSLO-3S
+            name: Oslo three-seater sofa, grey
+            price: '18990.00'
+            quantity: 2
+          - productId: CHAIR-VELVET-GRN
+            name: Velvet dining chair, green
+            price: '2490.00'
+            quantity: 4
+        createdAt: '2026-09-21T10:15:00+00:00'
+        updatedAt: '2026-09-21T10:15:00+00:00'
+    PatchedOrder:
+      value:
+        partnerId: PRT-1042
+        orderId: WEB-104172
+        expectedDeliveryDate: '2026-10-19'
+        totalValue: '47940.00'
+        products:
+          - productId: SOFA-OSLO-3S
+            name: Oslo three-seater sofa, grey
+            price: '18990.00'
+            quantity: 2
+          - productId: CHAIR-VELVET-GRN
+            name: Velvet dining chair, green
+            price: '2490.00'
+            quantity: 4
+        createdAt: '2026-09-21T10:15:00+00:00'
+        updatedAt: '2026-09-22T08:00:00+00:00'

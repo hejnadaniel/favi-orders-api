@@ -1,18 +1,16 @@
-# yaml-language-server: $schema=../vendor/symfony/dependency-injection/Loader/schema/services.schema.json
-
-parameters:
-    # Base of the RFC 9457 `type` URI. Each problem slug is appended to it.
-    app.problem_type_base_uri: '%env(PROBLEM_TYPE_BASE_URI)%'
-
 services:
     _defaults:
         autowire: true
         autoconfigure: true
-        bind:
-            string $problemTypeBaseUri: '%app.problem_type_base_uri%'
 
     App\:
         resource: '../src/'
         exclude:
             - '../src/Kernel.php'
-            - '../src/Order/Domain/'
+            - '../src/Dto/'
+            - '../src/Entity/'
+            - '../src/Exception/'
+            - '../src/ValueObject/'
+            - '../src/Validator/'
+
+    App\Repository\OrderRepositoryInterface: '@App\Repository\DoctrineOrderRepository'

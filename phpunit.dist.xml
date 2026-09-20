@@ -19,12 +19,13 @@
 
     <testsuites>
         <testsuite name="unit">
-            <directory>tests/Order/Domain</directory>
-            <directory>tests/Order/Application</directory>
-            <directory>tests/Shared</directory>
+            <directory>tests/Entity</directory>
+            <directory>tests/EventListener</directory>
+            <directory>tests/Service</directory>
+            <directory>tests/ValueObject</directory>
         </testsuite>
         <testsuite name="functional">
-            <directory>tests/Order/Infrastructure</directory>
+            <directory>tests/Functional</directory>
         </testsuite>
     </testsuites>
 

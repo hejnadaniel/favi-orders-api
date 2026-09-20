@@ -1,0 +1,9 @@
+{
+  "orderId": "WEB-104172",
+  "expectedDeliveryDate": "2026-10-05",
+  "totalValue": "47940.00",
+  "products": [
+    {"productId": "SOFA-OSLO-3S", "name": "Oslo three-seater sofa, grey", "price": "18990.00", "quantity": 2},
+    {"productId": "CHAIR-VELVET-GRN", "name": "Velvet dining chair, green", "price": "2490.00", "quantity": 4}
+  ]
+}
