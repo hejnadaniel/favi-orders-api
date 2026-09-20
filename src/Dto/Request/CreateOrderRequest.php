@@ -9,6 +9,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 final readonly class CreateOrderRequest
 {
+    public const int MAX_PRODUCTS = 1_000;
+
     /**
      * @param list<CreateOrderProductRequest> $products
      */
@@ -24,7 +26,7 @@ final readonly class CreateOrderRequest
         #[ValidDecimalAmount]
         public string $totalValue,
 
-        #[Assert\Count(min: 1)]
+        #[Assert\Count(min: 1, max: self::MAX_PRODUCTS)]
         #[Assert\Valid]
         public array $products,
     ) {

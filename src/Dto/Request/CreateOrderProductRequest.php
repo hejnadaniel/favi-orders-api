@@ -9,6 +9,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 final readonly class CreateOrderProductRequest
 {
+    public const int MAX_QUANTITY = 1_000_000;
+
     public function __construct(
         #[Assert\NotBlank]
         #[Assert\Length(max: 64)]
@@ -21,7 +23,7 @@ final readonly class CreateOrderProductRequest
         #[ValidDecimalAmount]
         public string $price,
 
-        #[Assert\GreaterThanOrEqual(1)]
+        #[Assert\Range(min: 1, max: self::MAX_QUANTITY)]
         public int $quantity,
     ) {
     }

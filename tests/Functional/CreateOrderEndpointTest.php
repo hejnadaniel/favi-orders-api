@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\Dto\Request\CreateOrderRequest;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 final class CreateOrderEndpointTest extends ApiTestCase
@@ -127,6 +128,26 @@ final class CreateOrderEndpointTest extends ApiTestCase
 
         $this->assertProblem(422, 'validation-failed');
         self::assertSame(['/products/0/price', '/products/0/quantity'], $this->errorPointers($this->responseBody()));
+    }
+
+    public function testRejectsQuantityAboveTheAllowedMaximum(): void
+    {
+        $this->postOrder($this->orderPayload(['products' => [
+            ['productId' => 'SOFA-OSLO-3S', 'name' => 'Oslo three-seater sofa, grey', 'price' => '18990.00', 'quantity' => 5_000_000_000],
+        ]]));
+
+        $this->assertProblem(422, 'validation-failed');
+        self::assertSame(['/products/0/quantity'], $this->errorPointers($this->responseBody()));
+    }
+
+    public function testRejectsMoreProductsThanTheOrderMayHold(): void
+    {
+        $product = ['productId' => 'SOFA-OSLO-3S', 'name' => 'Oslo three-seater sofa, grey', 'price' => '18990.00', 'quantity' => 1];
+
+        $this->postOrder($this->orderPayload(['products' => array_fill(0, CreateOrderRequest::MAX_PRODUCTS + 1, $product)]));
+
+        $this->assertProblem(422, 'validation-failed');
+        self::assertSame(['/products'], $this->errorPointers($this->responseBody()));
     }
 
     public function testRejectsEmptyProductList(): void
