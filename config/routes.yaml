@@ -1,7 +1,7 @@
 api_v1:
     resource:
-        path: ../src/Order/Infrastructure/Http/Controller/
-        namespace: App\Order\Infrastructure\Http\Controller
+        path: ../src/Controller/
+        namespace: App\Controller
     type: attribute
     prefix: /api/v1
     name_prefix: api_v1_

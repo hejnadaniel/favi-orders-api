@@ -122,36 +122,29 @@ their own problem documentation.
 
 ```
 src/
-  Order/
-    Domain/
-      Entity/         Order, OrderProduct
-      ValueObject/    DecimalAmount, ProductLine
-      Repository/     OrderRepositoryInterface
-      Exception/      DuplicateOrderException, OrderNotFoundException, InvalidOrderException
-    Application/
-      Dto/            CreateOrderDto, ChangeOrderDeliveryDateDto
-      Handler/        CreateOrderHandler, ChangeOrderDeliveryDateHandler, GetOrderHandler
-    Infrastructure/
-      Doctrine/       DoctrineOrderRepository
-      Http/
-        Controller/   OrderController: one class per resource
-        Request/      inbound DTOs with validation constraints
-        Response/     outbound DTOs
-        Factory/      request DTO -> application DTO, entity -> response DTO
-        Validator/    ValidDecimalAmount compound constraint
-  Shared/
-    Problem/          ProblemInterface: contract between exceptions and the HTTP layer
-    Http/EventListener/ ProblemDetailsListener
-    Date/             CalendarDateParser
+  Controller/         OrderController: one class for the order resource
+  Dto/                CreateOrderDto, ChangeOrderDeliveryDateDto
+    Request/          inbound DTOs with validation constraints
+    Response/         outbound DTOs
+  Entity/             Order, OrderProduct
+  EventListener/      ProblemDetailsListener
+  Exception/          domain exceptions and the ProblemInterface they implement
+  Factory/            request DTO -> service DTO, entity -> response DTO
+  Repository/         OrderRepositoryInterface and its Doctrine adapter
+  Service/            CreateOrderHandler, ChangeOrderDeliveryDateHandler,
+                      GetOrderHandler, CalendarDateParser
+  Validator/          ValidDecimalAmount compound constraint
+  ValueObject/        DecimalAmount, ProductLine
 ```
 
-Every folder name says what the classes inside are, so a handler is never
+Folders are named after what the classes inside are, so a handler is never
 mistaken for a DTO. There are no static methods anywhere in `src/`: objects are
 built with constructors, and anything that needs collaborators (clock, parser)
 is an injected service.
 
-- The domain owns the repository interface. Doctrine is one adapter behind it;
-  unit tests use an in-memory one and never boot the kernel.
+- Services depend on `OrderRepositoryInterface`, not on the Doctrine class
+  behind it; unit tests use an in-memory implementation and never boot the
+  kernel.
 - Entities own their invariants: the `Order` constructor refuses an empty
   product list, `ProductLine` refuses a quantity below one, `DecimalAmount`
   refuses anything that is not a non-negative decimal with at most two
@@ -170,15 +163,13 @@ is an injected service.
 ## Tests
 
 The part covered "as in standard development" is the application and domain
-layer: `tests/Order/Domain` and `tests/Order/Application` mirror the source
-folders, run in milliseconds,
+layer: the tests mirror the source folders, run in milliseconds,
 use fakes rather than mocks, and cover happy paths, boundaries (amount and
 quantity limits), idempotency, duplicate and not-found paths.
 
-The bonus integration test is the functional suite in
-`tests/Order/Infrastructure/Http`: full HTTP round trips against PostgreSQL for
+The bonus integration test is the functional suite in `tests/Functional`: full HTTP round trips against PostgreSQL for
 all three operations, including every documented error response.
-`tests/Shared` pins the problem-details mapping itself.
+`tests/EventListener` pins the problem-details mapping itself.
 
 ```
 composer test
