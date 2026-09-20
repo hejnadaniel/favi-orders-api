@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Order\Application\Command;
+namespace App\Order\Application\Dto;
 
 use App\Order\Domain\ValueObject\DecimalAmount;
 use App\Order\Domain\ValueObject\ProductLine;
 use DateTimeImmutable;
 
-final readonly class CreateOrderCommand
+final readonly class CreateOrderDto
 {
     /**
      * @param list<ProductLine> $products

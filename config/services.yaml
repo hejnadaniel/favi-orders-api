@@ -7,7 +7,7 @@ services:
         resource: '../src/'
         exclude:
             - '../src/Kernel.php'
-            - '../src/Order/Application/Command/'
+            - '../src/Order/Application/Dto/'
             - '../src/Order/Domain/'
             - '../src/Order/Infrastructure/Http/Request/'
             - '../src/Order/Infrastructure/Http/Response/'

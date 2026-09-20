@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Order\Application\Handler;
 
-use App\Order\Application\Command\ChangeOrderDeliveryDateCommand;
+use App\Order\Application\Dto\ChangeOrderDeliveryDateDto;
 use App\Order\Application\Handler\ChangeOrderDeliveryDateHandler;
 use App\Order\Application\Handler\CreateOrderHandler;
 use App\Order\Domain\Entity\Order;
 use App\Order\Domain\Exception\OrderNotFoundException;
 use App\Tests\Order\Application\Double\InMemoryOrderRepository;
-use App\Tests\Order\Application\Fixture\OrderCommandFixture;
+use App\Tests\Order\Application\Fixture\OrderDtoFixture;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
@@ -29,7 +29,7 @@ final class ChangeOrderDeliveryDateHandlerTest extends TestCase
         $this->orderRepository = new InMemoryOrderRepository();
         $this->clock = new MockClock('2026-09-21T10:15:00+00:00');
         $this->existingOrder = new CreateOrderHandler($this->orderRepository, $this->clock)
-            ->handle(new OrderCommandFixture()->createOrderCommand());
+            ->handle(new OrderDtoFixture()->createOrderDto());
         $this->changeOrderDeliveryDateHandler = new ChangeOrderDeliveryDateHandler($this->orderRepository, $this->clock);
     }
 
@@ -37,7 +37,7 @@ final class ChangeOrderDeliveryDateHandlerTest extends TestCase
     {
         $this->clock->modify('+1 day');
 
-        $order = $this->changeOrderDeliveryDateHandler->handle($this->command());
+        $order = $this->changeOrderDeliveryDateHandler->handle($this->dto());
 
         self::assertSame($this->existingOrder, $order);
         self::assertSame('2026-10-19', $order->expectedDeliveryDate->format('Y-m-d'));
@@ -47,17 +47,17 @@ final class ChangeOrderDeliveryDateHandlerTest extends TestCase
 
     public function testRunsInsideOneTransaction(): void
     {
-        $this->changeOrderDeliveryDateHandler->handle($this->command());
+        $this->changeOrderDeliveryDateHandler->handle($this->dto());
 
         self::assertSame(1, $this->orderRepository->transactionsStarted);
     }
 
     public function testIsIdempotentForTheSameDate(): void
     {
-        $first = $this->changeOrderDeliveryDateHandler->handle($this->command());
+        $first = $this->changeOrderDeliveryDateHandler->handle($this->dto());
         $updatedAtAfterFirst = $first->updatedAt;
 
-        $second = $this->changeOrderDeliveryDateHandler->handle($this->command());
+        $second = $this->changeOrderDeliveryDateHandler->handle($this->dto());
 
         self::assertSame($first, $second);
         self::assertSame('2026-10-19', $second->expectedDeliveryDate->format('Y-m-d'));
@@ -68,13 +68,13 @@ final class ChangeOrderDeliveryDateHandlerTest extends TestCase
     {
         $this->expectException(OrderNotFoundException::class);
 
-        $this->changeOrderDeliveryDateHandler->handle($this->command(orderId: 'WEB-UNKNOWN'));
+        $this->changeOrderDeliveryDateHandler->handle($this->dto(orderId: 'WEB-UNKNOWN'));
     }
 
     public function testDoesNotLetAnotherPartnerTouchTheOrder(): void
     {
         try {
-            $this->changeOrderDeliveryDateHandler->handle($this->command(partnerId: 'PRT-2087'));
+            $this->changeOrderDeliveryDateHandler->handle($this->dto(partnerId: 'PRT-2087'));
             self::fail('OrderNotFoundException was not thrown');
         } catch (OrderNotFoundException $exception) {
             self::assertSame('PRT-2087', $exception->partnerId);
@@ -85,8 +85,8 @@ final class ChangeOrderDeliveryDateHandlerTest extends TestCase
         self::assertSame(0, $this->orderRepository->transactionsStarted, 'a failed lookup must not open a transaction');
     }
 
-    private function command(string $partnerId = 'PRT-1042', string $orderId = 'WEB-100001'): ChangeOrderDeliveryDateCommand
+    private function dto(string $partnerId = 'PRT-1042', string $orderId = 'WEB-100001'): ChangeOrderDeliveryDateDto
     {
-        return new ChangeOrderDeliveryDateCommand($partnerId, $orderId, new DateTimeImmutable('2026-10-19'));
+        return new ChangeOrderDeliveryDateDto($partnerId, $orderId, new DateTimeImmutable('2026-10-19'));
     }
 }

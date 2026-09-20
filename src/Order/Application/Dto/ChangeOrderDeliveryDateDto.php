@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Order\Application\Command;
+namespace App\Order\Application\Dto;
 
 use DateTimeImmutable;
 
-final readonly class ChangeOrderDeliveryDateCommand
+final readonly class ChangeOrderDeliveryDateDto
 {
     public function __construct(
         public string $partnerId,

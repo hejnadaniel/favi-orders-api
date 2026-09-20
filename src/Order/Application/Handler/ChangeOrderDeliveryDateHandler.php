@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Order\Application\Handler;
 
-use App\Order\Application\Command\ChangeOrderDeliveryDateCommand;
+use App\Order\Application\Dto\ChangeOrderDeliveryDateDto;
 use App\Order\Domain\Entity\Order;
 use App\Order\Domain\Exception\OrderNotFoundException;
 use App\Order\Domain\Repository\OrderRepositoryInterface;
@@ -21,13 +21,13 @@ final class ChangeOrderDeliveryDateHandler
     /**
      * @throws OrderNotFoundException
      */
-    public function handle(ChangeOrderDeliveryDateCommand $command): Order
+    public function handle(ChangeOrderDeliveryDateDto $dto): Order
     {
-        $order = $this->orderRepository->findByPartnerAndOrderId($command->partnerId, $command->orderId)
-            ?? throw new OrderNotFoundException($command->partnerId, $command->orderId);
+        $order = $this->orderRepository->findByPartnerAndOrderId($dto->partnerId, $dto->orderId)
+            ?? throw new OrderNotFoundException($dto->partnerId, $dto->orderId);
 
-        return $this->orderRepository->wrapInTransaction(function () use ($order, $command): Order {
-            $order->changeExpectedDeliveryDate($command->expectedDeliveryDate, $this->clock->now());
+        return $this->orderRepository->wrapInTransaction(function () use ($order, $dto): Order {
+            $order->changeExpectedDeliveryDate($dto->expectedDeliveryDate, $this->clock->now());
 
             return $order;
         });

@@ -129,7 +129,7 @@ src/
       Repository/     OrderRepositoryInterface
       Exception/      DuplicateOrderException, OrderNotFoundException, InvalidOrderException
     Application/
-      Command/        CreateOrderCommand, ChangeOrderDeliveryDateCommand
+      Dto/            CreateOrderDto, ChangeOrderDeliveryDateDto
       Handler/        CreateOrderHandler, ChangeOrderDeliveryDateHandler, GetOrderHandler
     Infrastructure/
       Doctrine/       DoctrineOrderRepository
@@ -137,7 +137,7 @@ src/
         Controller/   OrderController: one class per resource
         Request/      inbound DTOs with validation constraints
         Response/     outbound DTOs
-        Factory/      request -> command and entity -> response translation
+        Factory/      request -> application DTO and entity -> response translation
         Validator/    ValidDecimalAmount compound constraint
   Shared/
     Problem/          ProblemInterface: contract between exceptions and the HTTP layer
@@ -156,8 +156,9 @@ is an injected service.
   product list, `ProductLine` refuses a quantity below one, `DecimalAmount`
   refuses anything that is not a non-negative decimal with at most two
   fractional digits. The only mutation is `Order::changeExpectedDeliveryDate()`.
-- The controller maps HTTP to a command and a command to a response; nothing
-  else. One class covers the order resource, one method per operation.
+- The controller maps an HTTP request to an application DTO and an entity to a
+  response; nothing else. One class covers the order resource, one method per
+  operation.
   `#[MapRequestPayload]` does deserialization and validation, and the
   translation itself lives in injected factories rather than in the controller.
 - One `kernel.exception` listener produces every error response. A domain

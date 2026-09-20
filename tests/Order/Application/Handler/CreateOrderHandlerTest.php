@@ -7,7 +7,7 @@ namespace App\Tests\Order\Application\Handler;
 use App\Order\Application\Handler\CreateOrderHandler;
 use App\Order\Domain\Exception\DuplicateOrderException;
 use App\Tests\Order\Application\Double\InMemoryOrderRepository;
-use App\Tests\Order\Application\Fixture\OrderCommandFixture;
+use App\Tests\Order\Application\Fixture\OrderDtoFixture;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
 
@@ -15,25 +15,25 @@ final class CreateOrderHandlerTest extends TestCase
 {
     private InMemoryOrderRepository $orderRepository;
     private MockClock $clock;
-    private OrderCommandFixture $commands;
+    private OrderDtoFixture $dtoFixture;
     private CreateOrderHandler $createOrderHandler;
 
     protected function setUp(): void
     {
         $this->orderRepository = new InMemoryOrderRepository();
         $this->clock = new MockClock('2026-09-21T10:15:00+00:00');
-        $this->commands = new OrderCommandFixture();
+        $this->dtoFixture = new OrderDtoFixture();
         $this->createOrderHandler = new CreateOrderHandler($this->orderRepository, $this->clock);
     }
 
     public function testStoresOrderUnderItsCompositeKeyWithValuesAsSubmitted(): void
     {
-        $command = $this->commands->createOrderCommand(products: [
-            $this->commands->productLine('SOFA-OSLO-3S', 'Oslo three-seater sofa, grey', '18990.00', 2),
-            $this->commands->productLine('CHAIR-VELVET-GRN', 'Velvet dining chair, green', '2490.00', 4),
+        $dto = $this->dtoFixture->createOrderDto(products: [
+            $this->dtoFixture->productLine('SOFA-OSLO-3S', 'Oslo three-seater sofa, grey', '18990.00', 2),
+            $this->dtoFixture->productLine('CHAIR-VELVET-GRN', 'Velvet dining chair, green', '2490.00', 4),
         ]);
 
-        $order = $this->createOrderHandler->handle($command);
+        $order = $this->createOrderHandler->handle($dto);
 
         self::assertSame($order, $this->orderRepository->findByPartnerAndOrderId('PRT-1042', 'WEB-100001'));
         self::assertSame('PRT-1042', $order->partnerId);
@@ -48,7 +48,7 @@ final class CreateOrderHandlerTest extends TestCase
 
     public function testTimestampsComeFromTheClock(): void
     {
-        $order = $this->createOrderHandler->handle($this->commands->createOrderCommand());
+        $order = $this->createOrderHandler->handle($this->dtoFixture->createOrderDto());
 
         self::assertEquals($this->clock->now(), $order->createdAt);
         self::assertEquals($this->clock->now(), $order->updatedAt);
@@ -56,12 +56,12 @@ final class CreateOrderHandlerTest extends TestCase
 
     public function testRejectsSecondSubmissionOfTheSameOrderAndKeepsTheFirst(): void
     {
-        $first = $this->createOrderHandler->handle($this->commands->createOrderCommand(totalValue: '3290.00'));
+        $first = $this->createOrderHandler->handle($this->dtoFixture->createOrderDto(totalValue: '3290.00'));
 
         $this->expectException(DuplicateOrderException::class);
 
         try {
-            $this->createOrderHandler->handle($this->commands->createOrderCommand(totalValue: '1.00'));
+            $this->createOrderHandler->handle($this->dtoFixture->createOrderDto(totalValue: '1.00'));
         } finally {
             self::assertSame(1, $this->orderRepository->count());
             self::assertSame($first, $this->orderRepository->findByPartnerAndOrderId('PRT-1042', 'WEB-100001'));
@@ -71,19 +71,19 @@ final class CreateOrderHandlerTest extends TestCase
 
     public function testSameOrderIdIsAllowedForAnotherPartner(): void
     {
-        $this->createOrderHandler->handle($this->commands->createOrderCommand(partnerId: 'PRT-1042'));
+        $this->createOrderHandler->handle($this->dtoFixture->createOrderDto(partnerId: 'PRT-1042'));
 
-        $this->createOrderHandler->handle($this->commands->createOrderCommand(partnerId: 'PRT-2087'));
+        $this->createOrderHandler->handle($this->dtoFixture->createOrderDto(partnerId: 'PRT-2087'));
 
         self::assertSame(2, $this->orderRepository->count());
     }
 
     public function testDuplicateExceptionNamesTheConflictingKey(): void
     {
-        $this->createOrderHandler->handle($this->commands->createOrderCommand(orderId: 'WEB-100900'));
+        $this->createOrderHandler->handle($this->dtoFixture->createOrderDto(orderId: 'WEB-100900'));
 
         try {
-            $this->createOrderHandler->handle($this->commands->createOrderCommand(orderId: 'WEB-100900'));
+            $this->createOrderHandler->handle($this->dtoFixture->createOrderDto(orderId: 'WEB-100900'));
             self::fail('DuplicateOrderException was not thrown');
         } catch (DuplicateOrderException $exception) {
             self::assertSame('PRT-1042', $exception->partnerId);

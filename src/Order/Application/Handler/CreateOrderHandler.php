@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Order\Application\Handler;
 
-use App\Order\Application\Command\CreateOrderCommand;
+use App\Order\Application\Dto\CreateOrderDto;
 use App\Order\Domain\Entity\Order;
 use App\Order\Domain\Exception\DuplicateOrderException;
 use App\Order\Domain\Exception\InvalidOrderException;
@@ -23,18 +23,18 @@ final class CreateOrderHandler
      * @throws DuplicateOrderException
      * @throws InvalidOrderException
      */
-    public function handle(CreateOrderCommand $command): Order
+    public function handle(CreateOrderDto $dto): Order
     {
-        if ($this->orderRepository->findByPartnerAndOrderId($command->partnerId, $command->orderId) !== null) {
-            throw new DuplicateOrderException($command->partnerId, $command->orderId);
+        if ($this->orderRepository->findByPartnerAndOrderId($dto->partnerId, $dto->orderId) !== null) {
+            throw new DuplicateOrderException($dto->partnerId, $dto->orderId);
         }
 
         $order = new Order(
-            partnerId: $command->partnerId,
-            orderId: $command->orderId,
-            expectedDeliveryDate: $command->expectedDeliveryDate,
-            totalValue: $command->totalValue,
-            products: $command->products,
+            partnerId: $dto->partnerId,
+            orderId: $dto->orderId,
+            expectedDeliveryDate: $dto->expectedDeliveryDate,
+            totalValue: $dto->totalValue,
+            products: $dto->products,
             createdAt: $this->clock->now(),
         );
 

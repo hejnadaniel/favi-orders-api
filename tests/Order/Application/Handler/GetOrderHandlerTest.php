@@ -8,7 +8,7 @@ use App\Order\Application\Handler\CreateOrderHandler;
 use App\Order\Application\Handler\GetOrderHandler;
 use App\Order\Domain\Exception\OrderNotFoundException;
 use App\Tests\Order\Application\Double\InMemoryOrderRepository;
-use App\Tests\Order\Application\Fixture\OrderCommandFixture;
+use App\Tests\Order\Application\Fixture\OrderDtoFixture;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
 
@@ -26,7 +26,7 @@ final class GetOrderHandlerTest extends TestCase
     public function testReturnsTheStoredOrder(): void
     {
         $created = new CreateOrderHandler($this->orderRepository, new MockClock())
-            ->handle(new OrderCommandFixture()->createOrderCommand());
+            ->handle(new OrderDtoFixture()->createOrderDto());
 
         self::assertSame($created, $this->getOrderHandler->handle('PRT-1042', 'WEB-100001'));
     }
