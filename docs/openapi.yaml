@@ -16,10 +16,10 @@ info:
     name: Daniel Hejna
 servers:
   - url: http://127.0.0.1:8000
-    description: Local development
+    description: Lokální vývoj
 tags:
   - name: Orders
-    description: Partner orders
+    description: Objednávky přijaté od partnerů
 
 paths:
   /api/v1/partners/{partnerId}/orders:
@@ -349,7 +349,7 @@ components:
                 type: https://api.favi.test/problems/validation-failed
                 title: Validation Failed
                 status: 422
-                detail: One or more fields are invalid.
+                detail: The request body did not pass validation.
                 instance: /api/v1/partners/PRT-1042/orders
                 errors:
                   - pointer: /products/0/quantity

@@ -92,7 +92,7 @@ final class ProblemDetailsListener
             ];
         }
 
-        return $this->buildProblemResponse(422, 'validation-failed', 'Validation Failed', 'One or more fields are invalid.', $instance, ['errors' => $errors]);
+        return $this->buildProblemResponse(422, 'validation-failed', 'Validation Failed', 'The request body did not pass validation.', $instance, ['errors' => $errors]);
     }
 
     private function buildUnknownFieldsResponse(ExtraAttributesException $exception, string $instance): JsonResponse
@@ -105,7 +105,7 @@ final class ProblemDetailsListener
             ];
         }
 
-        return $this->buildProblemResponse(422, 'validation-failed', 'Validation Failed', 'One or more fields are invalid.', $instance, ['errors' => $errors]);
+        return $this->buildProblemResponse(422, 'validation-failed', 'Validation Failed', 'The request body did not pass validation.', $instance, ['errors' => $errors]);
     }
 
     /**
