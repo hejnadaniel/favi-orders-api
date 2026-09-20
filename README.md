@@ -1,22 +1,22 @@
 # Partnerské objednávky
 
-Služba pro příjem objednávek z eshopů partnerů. Objednávku ověří, uloží
-a dovolí u ní později posunout termín dodání.
+Služba pro příjem objednávek z eshopů partnerů. Objednávku zvaliduje, uloží
+a dovolí u ní později posunout datum doručení.
 
 Symfony 8.1 na PHP 8.4, persistence přes Doctrine ORM 3 do PostgreSQL 16.
-Strojově čitelný kontrakt je v [`docs/openapi.yaml`](docs/openapi.yaml)
-a vznikl dřív než kód.
+OpenAPI kontrakt je v [`docs/openapi.yaml`](docs/openapi.yaml) a vznikl dřív
+než kód.
 
 ## Endpointy
 
 | Metoda | Cesta | Co udělá |
 |---|---|---|
 | POST | `/api/v1/partners/{partnerId}/orders` | založí objednávku |
-| PUT | `/api/v1/partners/{partnerId}/orders/{orderId}/delivery-date` | posune termín dodání |
+| PUT | `/api/v1/partners/{partnerId}/orders/{orderId}/delivery-date` | změní datum doručení |
 | GET | `/api/v1/partners/{partnerId}/orders/{orderId}` | vrátí uloženou objednávku |
 
-Kdo je partner, plyne výhradně z cesty. Tělo requestu identifikátor partnera
-nikdy neobsahuje, aby nemohl kolidovat s tím v URL.
+Partnera určuje výhradně URL. Tělo requestu jeho identifikátor nikdy
+neobsahuje, aby nemohl kolidovat s tím v cestě.
 
 Založení objednávky:
 
@@ -34,7 +34,7 @@ Content-Type: application/json
 }
 ```
 
-Posun termínu:
+Změna data doručení:
 
 ```http
 PUT /api/v1/partners/PRT-1042/orders/WEB-104172/delivery-date
@@ -43,12 +43,12 @@ Content-Type: application/json
 {"expectedDeliveryDate": "2026-10-19"}
 ```
 
-Návratové kódy:
+Stavové kódy:
 
 | Kód | Situace |
 |---|---|
 | 201 | založeno, odpověď nese hlavičku `Location` |
-| 200 | přečteno nebo posunuto |
+| 200 | vráceno GET, nebo úspěšně změněno |
 | 400 | tělo není platný JSON |
 | 404 | objednávka neexistuje, nebo patří jinému partnerovi |
 | 409 | dvojice `(partnerId, orderId)` je obsazená, původní záznam zůstává |
@@ -71,26 +71,26 @@ Chyby vracíme jako Problem Details podle RFC 9457:
 }
 ```
 
-Doménu v poli `type` nastavuje proměnná `PROBLEM_TYPE_BASE_URI`, takže si
-každé prostředí ukazuje na vlastní dokumentaci chyb.
+Základ URI v poli `type` nastavuje proměnná `PROBLEM_TYPE_BASE_URI`, takže si
+každé prostředí může ukazovat na vlastní dokumentaci chyb.
 
 ## Proč to vypadá takhle
 
-**Termín dodání jako samostatný zdroj s PUT.** Tělo requestu je celá
-reprezentace toho zdroje, takže PUT sedí a idempotence není slib, ale
+**Datum doručení jako vlastní sub-resource s PUT.** Tělo requestu je celá
+reprezentace toho sub-resource, takže PUT sedí a idempotence není slib, ale
 vlastnost metody. Vyzkoušel jsem i obecný `PATCH` nad objednávkou s merge
 patchem. Dává smysl ve chvíli, kdy je měnitelných polí víc; u jediného pole
 se platí za pružnost, kterou nikdo nepoužije, a k tomu se otevírá otázka, co
 znamená `null` v těle. Až polí přibude, je přechod na `PATCH` na pár řádků.
 
-**Čtecí endpoint nad rámec zadání.** Odpověď 201 má podle HTTP ukazovat na
+**GET endpoint navíc oproti zadání.** Odpověď 201 má podle HTTP ukazovat na
 nově vzniklý zdroj. Odkaz, který skončí na 405, je rozbitý slib, takže jsem
-raději dopsal čtení. Vedlejší efekt je, že integrační testy si ověřují
+raději dopsal i GET. Vedlejší efekt je, že integrační testy si ověřují
 uložený stav přes veřejné API a nešťourají v tabulkách.
 
-**Částky bez matematické knihovny.** Peníze putují jako `string` od requestu
-až do sloupce `numeric(14, 2)` a nikde se nepřevádějí na `float`. Hodnotový
-objekt `DecimalAmount` si v konstruktoru ohlídá tvar a doplní desetinná
+**Peníze bez knihovny na desetinná čísla.** Peníze putují jako `string` od requestu
+až do sloupce `numeric(14, 2)` a nikde se nepřevádějí na `float`. Value
+object `DecimalAmount` si v konstruktoru ohlídá formát a doplní desetinná
 místa; jeho konstanty zároveň řídí mapování sloupce i validační pravidlo, aby
 ta čísla byla v kódu jen jednou. Sáhnout po `brick/math` by přineslo typovou
 pojistku proti float aritmetice, ale zaplatilo by se závislostí a k ní
@@ -108,7 +108,7 @@ oproti součtu řádků sám o sobě nic nedokazuje; stát za ním může pošto
 množstevní sleva nebo zaokrouhlení, které v datech nevidíme. V provozu bych na
 ten rozdíl pověsil metriku, ale request bych propustil.
 
-**Termín v minulosti projde.** Zpětné opravy jsou běžné a posoudit úmysl je
+**Datum doručení v minulosti projde.** Zpětné opravy jsou běžné a posoudit úmysl je
 práce klienta, ne API. Co neprojde, je datum, které v kalendáři neexistuje:
 `2026-02-30` se kontroluje ještě jako text, protože jinak ho PHP potichu
 přesune na březen.
@@ -154,9 +154,9 @@ a PHPUnit. Totéž hlídá pipeline na každý push i pull request.
 
 Testů je 68. Unit testy nad doménou a službami běží v milisekundách a míří na
 hraniční hodnoty, duplicity, idempotenci a výjimky; to je ta část, kterou si
-zadání vyžádalo. Integrační testy projdou celý HTTP cyklus proti Postgresu pro
-každý dokumentovaný návratový kód a jsou tím bonusem navíc. Každý databázový
-test je obalený transakcí, která se na konci zahodí, takže na pořadí nezáleží.
+zadání vyžádalo. Funkční testy přes `WebTestCase` projdou celý HTTP cyklus proti Postgresu pro
+každý dokumentovaný stavový kód a jsou tím bonusem navíc. Každý databázový
+test běží v transakci, která se na konci rollbackne, takže na pořadí nezáleží.
 
 ## Jak je to poskládané
 
@@ -179,7 +179,7 @@ src/
 ```
 
 Handlery znají jen rozhraní repozitáře, takže unit testy pracují s in-memory
-implementací a nemusí startovat kernel. Objednávku bez jediného produktu nejde
+implementací a nestartují kernel. Objednávku bez jediného produktu nejde
 zkonstruovat, množství pod jedna neprojde konstruktorem řádku a `DecimalAmount`
 nepustí dál nic, co se nevejde do sloupce. Statická metoda není v `src/` ani
 jedna.
@@ -193,7 +193,7 @@ objednávka adresuje dvojicí `(partnerId, orderId)`. Řádky nesou sloupec
 
 ## Konvence
 
-Z PHP 8.4 se používá, co dává smysl: `readonly` u datových tříd, asymetrická
+Z PHP 8.4 se používá, co dává smysl: `readonly` u DTO, asymetrická
 viditelnost u entit místo getterů, `declare(strict_types=1)` v každém souboru
 a `final` jako výchozí stav. PHPStan jede na nejvyšším levelu se strict rules
 a bez baseline, formátování hlídá php-cs-fixer nad `@PER-CS2.0`,
