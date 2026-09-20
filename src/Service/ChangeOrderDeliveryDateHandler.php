@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Dto\ChangeOrderDeliveryDateDto;
+use App\Dto\ChangeOrderDeliveryDate;
 use App\Entity\Order;
 use App\Exception\OrderNotFoundException;
 use App\Repository\OrderRepositoryInterface;
@@ -21,7 +21,7 @@ final class ChangeOrderDeliveryDateHandler
     /**
      * @throws OrderNotFoundException
      */
-    public function handle(ChangeOrderDeliveryDateDto $dto): Order
+    public function handle(ChangeOrderDeliveryDate $dto): Order
     {
         $order = $this->orderRepository->findByPartnerAndOrderId($dto->partnerId, $dto->orderId)
             ?? throw new OrderNotFoundException($dto->partnerId, $dto->orderId);

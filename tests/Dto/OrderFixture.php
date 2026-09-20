@@ -4,24 +4,24 @@ declare(strict_types=1);
 
 namespace App\Tests\Dto;
 
-use App\Dto\CreateOrderDto;
+use App\Dto\CreateOrder;
 use App\ValueObject\DecimalAmount;
 use App\ValueObject\ProductLine;
 use DateTimeImmutable;
 
-final class OrderDtoFixture
+final class OrderFixture
 {
     /**
      * @param list<ProductLine>|null $products
      */
-    public function createOrderDto(
+    public function createOrder(
         string $partnerId = 'PRT-1042',
         string $orderId = 'WEB-100001',
         string $expectedDeliveryDate = '2026-10-05',
         string $totalValue = '47940.00',
         ?array $products = null,
-    ): CreateOrderDto {
-        return new CreateOrderDto(
+    ): CreateOrder {
+        return new CreateOrder(
             partnerId: $partnerId,
             orderId: $orderId,
             expectedDeliveryDate: new DateTimeImmutable($expectedDeliveryDate),

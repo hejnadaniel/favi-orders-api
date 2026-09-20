@@ -8,7 +8,7 @@ use App\ValueObject\DecimalAmount;
 use App\ValueObject\ProductLine;
 use DateTimeImmutable;
 
-final readonly class CreateOrderDto
+final readonly class CreateOrder
 {
     /**
      * @param list<ProductLine> $products

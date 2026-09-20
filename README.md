@@ -122,8 +122,8 @@ their own problem documentation.
 
 ```
 src/
-  Controller/         OrderController: one class for the order resource
-  Dto/                CreateOrderDto, ChangeOrderDeliveryDateDto
+  Controller/Api/V1/  OrderController: one class for the order resource
+  Dto/                CreateOrder, ChangeOrderDeliveryDate (service input)
     Request/          inbound DTOs with validation constraints
     Response/         outbound DTOs
   Entity/             Order, OrderProduct

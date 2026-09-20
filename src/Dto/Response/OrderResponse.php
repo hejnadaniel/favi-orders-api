@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Dto\Response;
 
-final readonly class OrderResponseDto
+final readonly class OrderResponse
 {
     /**
-     * @param list<OrderProductResponseDto> $products
+     * @param list<OrderProductResponse> $products
      */
     public function __construct(
         public string $partnerId,

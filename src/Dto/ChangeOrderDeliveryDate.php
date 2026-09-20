@@ -6,7 +6,7 @@ namespace App\Dto;
 
 use DateTimeImmutable;
 
-final readonly class ChangeOrderDeliveryDateDto
+final readonly class ChangeOrderDeliveryDate
 {
     public function __construct(
         public string $partnerId,

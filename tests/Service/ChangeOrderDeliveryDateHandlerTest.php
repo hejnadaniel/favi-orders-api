@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Service;
 
-use App\Dto\ChangeOrderDeliveryDateDto;
+use App\Dto\ChangeOrderDeliveryDate;
 use App\Entity\Order;
 use App\Exception\OrderNotFoundException;
 use App\Service\ChangeOrderDeliveryDateHandler;
 use App\Service\CreateOrderHandler;
-use App\Tests\Dto\OrderDtoFixture;
+use App\Tests\Dto\OrderFixture;
 use App\Tests\Repository\InMemoryOrderRepository;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
@@ -29,7 +29,7 @@ final class ChangeOrderDeliveryDateHandlerTest extends TestCase
         $this->orderRepository = new InMemoryOrderRepository();
         $this->clock = new MockClock('2026-09-21T10:15:00+00:00');
         $this->existingOrder = new CreateOrderHandler($this->orderRepository, $this->clock)
-            ->handle(new OrderDtoFixture()->createOrderDto());
+            ->handle(new OrderFixture()->createOrder());
         $this->changeOrderDeliveryDateHandler = new ChangeOrderDeliveryDateHandler($this->orderRepository, $this->clock);
     }
 
@@ -85,8 +85,8 @@ final class ChangeOrderDeliveryDateHandlerTest extends TestCase
         self::assertSame(0, $this->orderRepository->transactionsStarted, 'a failed lookup must not open a transaction');
     }
 
-    private function dto(string $partnerId = 'PRT-1042', string $orderId = 'WEB-100001'): ChangeOrderDeliveryDateDto
+    private function dto(string $partnerId = 'PRT-1042', string $orderId = 'WEB-100001'): ChangeOrderDeliveryDate
     {
-        return new ChangeOrderDeliveryDateDto($partnerId, $orderId, new DateTimeImmutable('2026-10-19'));
+        return new ChangeOrderDeliveryDate($partnerId, $orderId, new DateTimeImmutable('2026-10-19'));
     }
 }

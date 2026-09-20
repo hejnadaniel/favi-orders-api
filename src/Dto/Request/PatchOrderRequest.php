@@ -6,7 +6,7 @@ namespace App\Dto\Request;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-final readonly class PatchOrderRequestDto
+final readonly class PatchOrderRequest
 {
     public function __construct(
         #[Assert\NotBlank]

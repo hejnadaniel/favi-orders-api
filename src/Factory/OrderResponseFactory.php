@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace App\Factory;
 
-use App\Dto\Response\OrderProductResponseDto;
-use App\Dto\Response\OrderResponseDto;
+use App\Dto\Response\OrderProductResponse;
+use App\Dto\Response\OrderResponse;
 use App\Entity\Order;
 use App\Entity\OrderProduct;
 use DateTimeInterface;
 
-final class OrderResponseDtoFactory
+final class OrderResponseFactory
 {
-    public function create(Order $order): OrderResponseDto
+    public function create(Order $order): OrderResponse
     {
-        return new OrderResponseDto(
+        return new OrderResponse(
             partnerId: $order->partnerId,
             orderId: $order->orderId,
             expectedDeliveryDate: $order->expectedDeliveryDate->format('Y-m-d'),
@@ -25,9 +25,9 @@ final class OrderResponseDtoFactory
         );
     }
 
-    private function createProduct(OrderProduct $product): OrderProductResponseDto
+    private function createProduct(OrderProduct $product): OrderProductResponse
     {
-        return new OrderProductResponseDto(
+        return new OrderProductResponse(
             productId: $product->productId,
             name: $product->name,
             price: $product->price,

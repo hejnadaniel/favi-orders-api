@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Dto\CreateOrderDto;
+use App\Dto\CreateOrder;
 use App\Entity\Order;
 use App\Exception\DuplicateOrderException;
 use App\Exception\InvalidOrderException;
@@ -23,7 +23,7 @@ final class CreateOrderHandler
      * @throws DuplicateOrderException
      * @throws InvalidOrderException
      */
-    public function handle(CreateOrderDto $dto): Order
+    public function handle(CreateOrder $dto): Order
     {
         if ($this->orderRepository->findByPartnerAndOrderId($dto->partnerId, $dto->orderId) !== null) {
             throw new DuplicateOrderException($dto->partnerId, $dto->orderId);

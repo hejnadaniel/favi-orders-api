@@ -4,23 +4,23 @@ declare(strict_types=1);
 
 namespace App\Factory;
 
-use App\Dto\CreateOrderDto;
-use App\Dto\Request\CreateOrderProductRequestDto;
-use App\Dto\Request\CreateOrderRequestDto;
+use App\Dto\CreateOrder;
+use App\Dto\Request\CreateOrderProductRequest;
+use App\Dto\Request\CreateOrderRequest;
 use App\Service\CalendarDateParser;
 use App\ValueObject\DecimalAmount;
 use App\ValueObject\ProductLine;
 
-final class CreateOrderDtoFactory
+final class CreateOrderFactory
 {
     public function __construct(
         private readonly CalendarDateParser $calendarDateParser,
     ) {
     }
 
-    public function create(string $partnerId, CreateOrderRequestDto $request): CreateOrderDto
+    public function create(string $partnerId, CreateOrderRequest $request): CreateOrder
     {
-        return new CreateOrderDto(
+        return new CreateOrder(
             partnerId: $partnerId,
             orderId: $request->orderId,
             expectedDeliveryDate: $this->calendarDateParser->parse($request->expectedDeliveryDate),
@@ -29,7 +29,7 @@ final class CreateOrderDtoFactory
         );
     }
 
-    private function createProductLine(CreateOrderProductRequestDto $request): ProductLine
+    private function createProductLine(CreateOrderProductRequest $request): ProductLine
     {
         return new ProductLine(
             productId: $request->productId,
