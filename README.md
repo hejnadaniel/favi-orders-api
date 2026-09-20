@@ -59,7 +59,7 @@ identified by the URL only; the body never repeats it.
 ### Create an order
 
 ```bash
-curl -sS -i -X POST http://127.0.0.1:8000/api/v1/partners/nabytek-brno/orders \
+curl -sS -i -X POST http://127.0.0.1:8000/api/v1/partners/PRT-1042/orders \
   -H 'Content-Type: application/json' \
   --data @docs/examples/create-order.json
 ```
@@ -67,27 +67,27 @@ curl -sS -i -X POST http://127.0.0.1:8000/api/v1/partners/nabytek-brno/orders \
 ```http
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /api/v1/partners/nabytek-brno/orders/WEB-104172
+Location: /api/v1/partners/PRT-1042/orders/WEB-104172
 
-{"partnerId":"nabytek-brno","orderId":"WEB-104172","expectedDeliveryDate":"2026-10-05","totalValue":"47940.00","products":[{"productId":"SOFA-OSLO-3S","name":"Oslo three-seater sofa, grey","price":"18990.00","quantity":2},{"productId":"CHAIR-VELVET-GRN","name":"Velvet dining chair, green","price":"2490.00","quantity":4}],"createdAt":"2026-09-17T15:56:42+00:00","updatedAt":"2026-09-17T15:56:42+00:00"}
+{"partnerId":"PRT-1042","orderId":"WEB-104172","expectedDeliveryDate":"2026-10-05","totalValue":"47940.00","products":[{"productId":"SOFA-OSLO-3S","name":"Oslo three-seater sofa, grey","price":"18990.00","quantity":2},{"productId":"CHAIR-VELVET-GRN","name":"Velvet dining chair, green","price":"2490.00","quantity":4}],"createdAt":"2026-09-17T15:56:42+00:00","updatedAt":"2026-09-17T15:56:42+00:00"}
 ```
 
 Sending the same `(partnerId, orderId)` again never overwrites anything:
 
 ```json
-{"type":"https://api.favi.test/problems/duplicate-order","title":"Duplicate Order","status":409,"detail":"Order \"WEB-104172\" already exists for partner \"nabytek-brno\".","instance":"/api/v1/partners/nabytek-brno/orders"}
+{"type":"https://api.favi.test/problems/duplicate-order","title":"Duplicate Order","status":409,"detail":"Order \"WEB-104172\" already exists for partner \"PRT-1042\".","instance":"/api/v1/partners/PRT-1042/orders"}
 ```
 
 Validation failures carry one JSON Pointer per field:
 
 ```json
-{"type":"https://api.favi.test/problems/validation-failed","title":"Validation Failed","status":422,"detail":"One or more fields are invalid.","instance":"/api/v1/partners/nabytek-brno/orders","errors":[{"pointer":"/totalValue","message":"This value should be a non-negative decimal with at most 12 integer and 2 fractional digits."},{"pointer":"/products/0/quantity","message":"This value should be greater than or equal to 1."}]}
+{"type":"https://api.favi.test/problems/validation-failed","title":"Validation Failed","status":422,"detail":"One or more fields are invalid.","instance":"/api/v1/partners/PRT-1042/orders","errors":[{"pointer":"/totalValue","message":"This value should be a non-negative decimal with at most 12 integer and 2 fractional digits."},{"pointer":"/products/0/quantity","message":"This value should be greater than or equal to 1."}]}
 ```
 
 ### Change the expected delivery date
 
 ```bash
-curl -sS -i -X PATCH http://127.0.0.1:8000/api/v1/partners/nabytek-brno/orders/WEB-104172 \
+curl -sS -i -X PATCH http://127.0.0.1:8000/api/v1/partners/PRT-1042/orders/WEB-104172 \
   -H 'Content-Type: application/merge-patch+json' \
   --data @docs/examples/patch-order.json
 ```
@@ -99,7 +99,7 @@ unknown order (including one that belongs to another partner) with `404`.
 ### Read an order
 
 ```bash
-curl -sS http://127.0.0.1:8000/api/v1/partners/nabytek-brno/orders/WEB-104172
+curl -sS http://127.0.0.1:8000/api/v1/partners/PRT-1042/orders/WEB-104172
 ```
 
 | Situation | Status |
@@ -123,36 +123,53 @@ their own problem documentation.
 ```
 src/
   Order/
-    Domain/           Order, OrderProduct, ProductLine, DecimalAmount,
-                      OrderRepository (interface), domain exceptions
-    Application/      OrderCreator, OrderDeliveryDateUpdater, OrderFinder
-                      and their command objects
+    Domain/
+      Entity/         Order, OrderProduct
+      ValueObject/    DecimalAmount, ProductLine
+      Repository/     OrderRepositoryInterface
+      Exception/      DuplicateOrderException, OrderNotFoundException, InvalidOrderException
+    Application/
+      Command/        CreateOrderCommand, ChangeOrderDeliveryDateCommand
+      Handler/        CreateOrderHandler, ChangeOrderDeliveryDateHandler, GetOrderHandler
     Infrastructure/
       Doctrine/       DoctrineOrderRepository
-      Http/           one controller per operation, request and response DTOs
+      Http/
+        Controller/   one controller per operation
+        Request/      inbound DTOs with validation constraints
+        Response/     outbound DTOs
+        Factory/      request -> command and entity -> response translation
+        Validator/    ValidDecimalAmount compound constraint
   Shared/
-    Problem/          Problem: contract between exceptions and the HTTP layer
-    Http/Problem/     ProblemDetailsListener
+    Problem/          ProblemInterface: contract between exceptions and the HTTP layer
+    Http/EventListener/ ProblemDetailsListener
+    Date/             CalendarDateParser
 ```
+
+Every folder name says what the classes inside are, so a handler is never
+mistaken for a DTO. There are no static methods anywhere in `src/`: objects are
+built with constructors, and anything that needs collaborators (clock, parser)
+is an injected service.
 
 - The domain owns the repository interface. Doctrine is one adapter behind it;
   unit tests use an in-memory one and never boot the kernel.
-- Entities own their invariants: `Order::place()` refuses an empty product list,
-  `ProductLine` refuses a quantity below one, `DecimalAmount` refuses anything
-  that is not a non-negative decimal with at most two fractional digits. The
-  only mutation is `Order::changeExpectedDeliveryDate()`.
+- Entities own their invariants: the `Order` constructor refuses an empty
+  product list, `ProductLine` refuses a quantity below one, `DecimalAmount`
+  refuses anything that is not a non-negative decimal with at most two
+  fractional digits. The only mutation is `Order::changeExpectedDeliveryDate()`.
 - Controllers map HTTP to a command and a command to a response; nothing else.
-  `#[MapRequestPayload]` does deserialization and validation.
+  `#[MapRequestPayload]` does deserialization and validation, and the
+  translation itself lives in injected factories rather than in the controller.
 - One `kernel.exception` listener produces every error response. A domain
-  exception becomes an API error by implementing `Problem` (slug, status,
-  title); the listener never needs a `switch` over exception classes.
+  exception becomes an API error by implementing `ProblemInterface` (slug,
+  status, title); the listener never needs a `switch` over exception classes.
 - Validation is layered: request DTO (shape, 422), domain (invariants), database
   (unique index, the only guard that holds under concurrent submissions).
 
 ## Tests
 
 The part covered "as in standard development" is the application and domain
-layer: `tests/Order/Domain` and `tests/Order/Application` run in milliseconds,
+layer: `tests/Order/Domain` and `tests/Order/Application` mirror the source
+folders, run in milliseconds,
 use fakes rather than mocks, and cover happy paths, boundaries (amount and
 quantity limits), idempotency, duplicate and not-found paths.
 

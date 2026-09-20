@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Order\Domain\Exception;
 
-use App\Shared\Problem\Problem;
+use App\Shared\Problem\ProblemInterface;
 use RuntimeException;
 use Throwable;
 
-final class DuplicateOrderException extends RuntimeException implements Problem
+final class DuplicateOrderException extends RuntimeException implements ProblemInterface
 {
     public function __construct(
         public readonly string $partnerId,
@@ -21,17 +21,17 @@ final class DuplicateOrderException extends RuntimeException implements Problem
         );
     }
 
-    public function slug(): string
+    public function getSlug(): string
     {
         return 'duplicate-order';
     }
 
-    public function status(): int
+    public function getStatus(): int
     {
         return 409;
     }
 
-    public function title(): string
+    public function getTitle(): string
     {
         return 'Duplicate Order';
     }

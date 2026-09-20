@@ -11,8 +11,10 @@ use const JSON_THROW_ON_ERROR;
 
 abstract class ApiTestCase extends WebTestCase
 {
-    protected const string PARTNER_ID = 'nabytek-brno';
+    protected const string PARTNER_ID = 'PRT-1042';
+    protected const string OTHER_PARTNER_ID = 'PRT-2087';
     protected const string ORDER_ID = 'WEB-104172';
+    protected const string PROBLEM_TYPE_BASE_URI = 'https://api.favi.test/problems';
 
     protected KernelBrowser $client;
 
@@ -26,7 +28,7 @@ abstract class ApiTestCase extends WebTestCase
      *
      * @return array<string, mixed>
      */
-    protected static function orderPayload(array $overrides = []): array
+    protected function orderPayload(array $overrides = []): array
     {
         return [
             'orderId' => self::ORDER_ID,
@@ -55,7 +57,7 @@ abstract class ApiTestCase extends WebTestCase
     {
         $this->client->request(
             'PATCH',
-            self::orderPath($orderId, $partnerId),
+            $this->orderPath($orderId, $partnerId),
             server: ['CONTENT_TYPE' => $contentType, 'HTTP_ACCEPT' => 'application/json'],
             content: json_encode($payload, JSON_THROW_ON_ERROR),
         );
@@ -63,10 +65,10 @@ abstract class ApiTestCase extends WebTestCase
 
     protected function getOrder(string $orderId = self::ORDER_ID, string $partnerId = self::PARTNER_ID): void
     {
-        $this->client->request('GET', self::orderPath($orderId, $partnerId), server: ['HTTP_ACCEPT' => 'application/json']);
+        $this->client->request('GET', $this->orderPath($orderId, $partnerId), server: ['HTTP_ACCEPT' => 'application/json']);
     }
 
-    protected static function orderPath(string $orderId = self::ORDER_ID, string $partnerId = self::PARTNER_ID): string
+    protected function orderPath(string $orderId = self::ORDER_ID, string $partnerId = self::PARTNER_ID): string
     {
         return \sprintf('/api/v1/partners/%s/orders/%s', $partnerId, $orderId);
     }
@@ -90,7 +92,7 @@ abstract class ApiTestCase extends WebTestCase
      *
      * @return list<string>
      */
-    protected static function errorPointers(array $problem): array
+    protected function errorPointers(array $problem): array
     {
         self::assertIsArray($problem['errors'] ?? null, 'problem details must carry an errors[] list');
 
@@ -100,9 +102,13 @@ abstract class ApiTestCase extends WebTestCase
         return array_column($errors, 'pointer');
     }
 
-    protected static function assertProblem(int $status, string $slug): void
+    protected function assertProblem(int $status, string $slug): void
     {
         self::assertResponseStatusCodeSame($status);
         self::assertResponseHeaderSame('Content-Type', 'application/problem+json');
+
+        $problem = $this->responseBody();
+        self::assertSame(self::PROBLEM_TYPE_BASE_URI . '/' . $slug, $problem['type']);
+        self::assertSame($status, $problem['status']);
     }
 }

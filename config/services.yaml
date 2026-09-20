@@ -7,6 +7,11 @@ services:
         resource: '../src/'
         exclude:
             - '../src/Kernel.php'
+            - '../src/Order/Application/Command/'
             - '../src/Order/Domain/'
+            - '../src/Order/Infrastructure/Http/Request/'
+            - '../src/Order/Infrastructure/Http/Response/'
+            - '../src/Order/Infrastructure/Http/Validator/'
+            - '../src/Shared/Problem/'
 
-    App\Order\Domain\OrderRepository: '@App\Order\Infrastructure\Doctrine\DoctrineOrderRepository'
+    App\Order\Domain\Repository\OrderRepositoryInterface: '@App\Order\Infrastructure\Doctrine\DoctrineOrderRepository'

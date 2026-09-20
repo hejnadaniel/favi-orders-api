@@ -10,13 +10,13 @@ final class CreateOrderControllerTest extends ApiTestCase
 {
     public function testCreatesOrderAndPointsToItWithLocation(): void
     {
-        $payload = self::orderPayload();
+        $payload = $this->orderPayload();
 
         $this->postOrder($payload);
 
         self::assertResponseStatusCodeSame(201);
         self::assertResponseHeaderSame('Content-Type', 'application/json');
-        self::assertResponseHeaderSame('Location', self::orderPath());
+        self::assertResponseHeaderSame('Location', $this->orderPath());
 
         $body = $this->responseBody();
         self::assertSame(self::PARTNER_ID, $body['partnerId']);
@@ -29,7 +29,7 @@ final class CreateOrderControllerTest extends ApiTestCase
 
     public function testCreatedOrderCanBeReadBackFromTheLocation(): void
     {
-        $this->postOrder(self::orderPayload());
+        $this->postOrder($this->orderPayload());
         $created = $this->responseBody();
 
         $this->getOrder();
@@ -40,7 +40,7 @@ final class CreateOrderControllerTest extends ApiTestCase
 
     public function testAmountsAreNormalisedToTwoFractionalDigits(): void
     {
-        $this->postOrder(self::orderPayload([
+        $this->postOrder($this->orderPayload([
             'totalValue' => '350',
             'products' => [['productId' => 'SOFA-OSLO-3S', 'name' => 'Nightstand Luna', 'price' => '99.9', 'quantity' => 1]],
         ]));
@@ -53,17 +53,15 @@ final class CreateOrderControllerTest extends ApiTestCase
 
     public function testSecondSubmissionOfTheSameOrderConflictsAndKeepsTheFirst(): void
     {
-        $this->postOrder(self::orderPayload(['totalValue' => '3290.00']));
+        $this->postOrder($this->orderPayload(['totalValue' => '3290.00']));
         self::assertResponseStatusCodeSame(201);
 
-        $this->postOrder(self::orderPayload(['totalValue' => '890.00']));
+        $this->postOrder($this->orderPayload(['totalValue' => '890.00']));
 
-        self::assertProblem(409, 'duplicate-order');
+        $this->assertProblem(409, 'duplicate-order');
         $problem = $this->responseBody();
-        self::assertSame('https://api.favi.test/problems/duplicate-order', $problem['type']);
         self::assertSame('Duplicate Order', $problem['title']);
-        self::assertSame(409, $problem['status']);
-        self::assertSame('/api/v1/partners/nabytek-brno/orders', $problem['instance']);
+        self::assertSame('/api/v1/partners/PRT-1042/orders', $problem['instance']);
 
         $this->getOrder();
         self::assertSame('3290.00', $this->responseBody()['totalValue']);
@@ -71,11 +69,11 @@ final class CreateOrderControllerTest extends ApiTestCase
 
     public function testSameOrderIdUnderAnotherPartnerIsANewOrder(): void
     {
-        $this->postOrder(self::orderPayload(), 'nabytek-brno');
-        $this->postOrder(self::orderPayload(), 'nabytek-ostrava');
+        $this->postOrder($this->orderPayload(), 'PRT-1042');
+        $this->postOrder($this->orderPayload(), self::OTHER_PARTNER_ID);
 
         self::assertResponseStatusCodeSame(201);
-        self::assertResponseHeaderSame('Location', self::orderPath(partnerId: 'nabytek-ostrava'));
+        self::assertResponseHeaderSame('Location', $this->orderPath(partnerId: self::OTHER_PARTNER_ID));
     }
 
     public function testAcceptsIdentifiersAtTheLengthLimitAndWithNonAsciiCharacters(): void
@@ -83,7 +81,7 @@ final class CreateOrderControllerTest extends ApiTestCase
         $partnerId = str_repeat('ž', 64);
         $orderId = 'objednávka č. 17';
 
-        $this->postOrder(self::orderPayload(['orderId' => $orderId]), rawurlencode($partnerId));
+        $this->postOrder($this->orderPayload(['orderId' => $orderId]), rawurlencode($partnerId));
 
         self::assertResponseStatusCodeSame(201);
         $body = $this->responseBody();
@@ -96,27 +94,26 @@ final class CreateOrderControllerTest extends ApiTestCase
 
     public function testPartnerIdOnePastTheLengthLimitMatchesNoRoute(): void
     {
-        $this->postOrder(self::orderPayload(), str_repeat('p', 65));
+        $this->postOrder($this->orderPayload(), str_repeat('p', 65));
 
-        self::assertProblem(404, 'not-found');
+        $this->assertProblem(404, 'not-found');
     }
 
     public function testOrderIdOnePastTheLengthLimitIsAValidationError(): void
     {
-        $this->postOrder(self::orderPayload(['orderId' => str_repeat('o', 65)]));
+        $this->postOrder($this->orderPayload(['orderId' => str_repeat('o', 65)]));
 
-        self::assertProblem(422, 'validation-failed');
-        self::assertSame(['/orderId'], self::errorPointers($this->responseBody()));
+        $this->assertProblem(422, 'validation-failed');
+        self::assertSame(['/orderId'], $this->errorPointers($this->responseBody()));
     }
 
     public function testRejectsNegativeTotalValueWithFieldPointer(): void
     {
-        $this->postOrder(self::orderPayload(['totalValue' => '-250.00']));
+        $this->postOrder($this->orderPayload(['totalValue' => '-250.00']));
 
-        self::assertProblem(422, 'validation-failed');
+        $this->assertProblem(422, 'validation-failed');
         $problem = $this->responseBody();
-        self::assertSame('https://api.favi.test/problems/validation-failed', $problem['type']);
-        self::assertSame(['/totalValue'], self::errorPointers($problem));
+        self::assertSame(['/totalValue'], $this->errorPointers($problem));
 
         $this->getOrder();
         self::assertResponseStatusCodeSame(404);
@@ -124,20 +121,20 @@ final class CreateOrderControllerTest extends ApiTestCase
 
     public function testRejectsInvalidNestedProductWithNestedPointers(): void
     {
-        $this->postOrder(self::orderPayload(['products' => [
+        $this->postOrder($this->orderPayload(['products' => [
             ['productId' => 'SOFA-OSLO-3S', 'name' => 'Nightstand Luna', 'price' => '10.123', 'quantity' => 0],
         ]]));
 
-        self::assertProblem(422, 'validation-failed');
-        self::assertSame(['/products/0/price', '/products/0/quantity'], self::errorPointers($this->responseBody()));
+        $this->assertProblem(422, 'validation-failed');
+        self::assertSame(['/products/0/price', '/products/0/quantity'], $this->errorPointers($this->responseBody()));
     }
 
     public function testRejectsEmptyProductList(): void
     {
-        $this->postOrder(self::orderPayload(['products' => []]));
+        $this->postOrder($this->orderPayload(['products' => []]));
 
-        self::assertProblem(422, 'validation-failed');
-        self::assertSame(['/products'], self::errorPointers($this->responseBody()));
+        $this->assertProblem(422, 'validation-failed');
+        self::assertSame(['/products'], $this->errorPointers($this->responseBody()));
     }
 
     /**
@@ -154,46 +151,44 @@ final class CreateOrderControllerTest extends ApiTestCase
     #[DataProvider('provideInvalidDeliveryDates')]
     public function testRejectsDeliveryDateThatIsNotACalendarDate(string $date): void
     {
-        $this->postOrder(self::orderPayload(['expectedDeliveryDate' => $date]));
+        $this->postOrder($this->orderPayload(['expectedDeliveryDate' => $date]));
 
-        self::assertProblem(422, 'validation-failed');
-        self::assertSame(['/expectedDeliveryDate'], self::errorPointers($this->responseBody()));
+        $this->assertProblem(422, 'validation-failed');
+        self::assertSame(['/expectedDeliveryDate'], $this->errorPointers($this->responseBody()));
     }
 
     public function testRejectsMissingRequiredField(): void
     {
-        $payload = self::orderPayload();
+        $payload = $this->orderPayload();
         unset($payload['orderId']);
 
         $this->postOrder($payload);
 
-        self::assertProblem(422, 'validation-failed');
-        self::assertSame(['/orderId'], self::errorPointers($this->responseBody()));
+        $this->assertProblem(422, 'validation-failed');
+        self::assertSame(['/orderId'], $this->errorPointers($this->responseBody()));
     }
 
     public function testRejectsMalformedJson(): void
     {
         $this->client->request(
             'POST',
-            '/api/v1/partners/nabytek-brno/orders',
+            '/api/v1/partners/PRT-1042/orders',
             server: ['CONTENT_TYPE' => 'application/json'],
             content: '{"orderId": ',
         );
 
-        self::assertProblem(400, 'malformed-request');
-        self::assertSame('https://api.favi.test/problems/malformed-request', $this->responseBody()['type']);
+        $this->assertProblem(400, 'malformed-request');
     }
 
     public function testRejectsNonJsonContentType(): void
     {
         $this->client->request(
             'POST',
-            '/api/v1/partners/nabytek-brno/orders',
+            '/api/v1/partners/PRT-1042/orders',
             server: ['CONTENT_TYPE' => 'text/xml'],
             content: '<order/>',
         );
 
-        self::assertProblem(415, 'unsupported-media-type');
-        self::assertSame('https://api.favi.test/problems/unsupported-media-type', $this->responseBody()['type']);
+        $this->assertProblem(415, 'unsupported-media-type');
     }
 }

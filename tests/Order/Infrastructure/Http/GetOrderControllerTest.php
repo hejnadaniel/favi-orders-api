@@ -8,7 +8,7 @@ final class GetOrderControllerTest extends ApiTestCase
 {
     public function testReturnsTheStoredOrder(): void
     {
-        $this->postOrder(self::orderPayload());
+        $this->postOrder($this->orderPayload());
 
         $this->getOrder();
 
@@ -26,23 +26,22 @@ final class GetOrderControllerTest extends ApiTestCase
     {
         $this->getOrder('WEB-MISSING');
 
-        self::assertProblem(404, 'order-not-found');
-        self::assertSame('Order "WEB-MISSING" was not found for partner "nabytek-brno".', $this->responseBody()['detail']);
+        $this->assertProblem(404, 'order-not-found');
+        self::assertSame('Order "WEB-MISSING" was not found for partner "PRT-1042".', $this->responseBody()['detail']);
     }
 
     public function testUnknownRouteIsAProblemToo(): void
     {
         $this->client->request('GET', '/api/v1/nothing-here', server: ['HTTP_ACCEPT' => 'application/json']);
 
-        self::assertProblem(404, 'not-found');
-        self::assertSame('https://api.favi.test/problems/not-found', $this->responseBody()['type']);
+        $this->assertProblem(404, 'not-found');
     }
 
     public function testWrongMethodAdvertisesTheAllowedOnes(): void
     {
-        $this->client->request('DELETE', self::orderPath(), server: ['HTTP_ACCEPT' => 'application/json']);
+        $this->client->request('DELETE', $this->orderPath(), server: ['HTTP_ACCEPT' => 'application/json']);
 
-        self::assertProblem(405, 'method-not-allowed');
+        $this->assertProblem(405, 'method-not-allowed');
         self::assertResponseHeaderSame('Allow', 'GET, PATCH');
     }
 }

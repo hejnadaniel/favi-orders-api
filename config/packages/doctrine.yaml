@@ -12,8 +12,8 @@ doctrine:
             Order:
                 type: attribute
                 is_bundle: false
-                dir: '%kernel.project_dir%/src/Order/Domain'
-                prefix: 'App\Order\Domain'
+                dir: '%kernel.project_dir%/src/Order/Domain/Entity'
+                prefix: 'App\Order\Domain\Entity'
                 alias: Order
 
 when@test:

@@ -20,7 +20,7 @@ final class PatchOrderControllerTest extends ApiTestCase
     #[DataProvider('provideAcceptedContentTypes')]
     public function testReplacesDeliveryDateAndLeavesEverythingElseUntouched(string $contentType): void
     {
-        $this->postOrder(self::orderPayload());
+        $this->postOrder($this->orderPayload());
         $created = $this->responseBody();
 
         $this->patchOrder(['expectedDeliveryDate' => '2026-10-19'], contentType: $contentType);
@@ -42,7 +42,7 @@ final class PatchOrderControllerTest extends ApiTestCase
 
     public function testIsIdempotent(): void
     {
-        $this->postOrder(self::orderPayload());
+        $this->postOrder($this->orderPayload());
 
         $this->patchOrder(['expectedDeliveryDate' => '2026-10-19']);
         $first = $this->responseBody();
@@ -56,43 +56,42 @@ final class PatchOrderControllerTest extends ApiTestCase
     {
         $this->patchOrder(['expectedDeliveryDate' => '2026-10-19'], orderId: 'WEB-UNKNOWN');
 
-        self::assertProblem(404, 'order-not-found');
+        $this->assertProblem(404, 'order-not-found');
         $problem = $this->responseBody();
-        self::assertSame('https://api.favi.test/problems/order-not-found', $problem['type']);
         self::assertSame('Order Not Found', $problem['title']);
-        self::assertSame(self::orderPath('WEB-UNKNOWN'), $problem['instance']);
+        self::assertSame($this->orderPath('WEB-UNKNOWN'), $problem['instance']);
     }
 
     public function testAnotherPartnerCannotTouchTheOrder(): void
     {
-        $this->postOrder(self::orderPayload(), 'nabytek-brno');
+        $this->postOrder($this->orderPayload(), 'PRT-1042');
 
-        $this->patchOrder(['expectedDeliveryDate' => '2026-10-19'], partnerId: 'nabytek-ostrava');
+        $this->patchOrder(['expectedDeliveryDate' => '2026-10-19'], partnerId: self::OTHER_PARTNER_ID);
 
-        self::assertProblem(404, 'order-not-found');
+        $this->assertProblem(404, 'order-not-found');
 
-        $this->getOrder(partnerId: 'nabytek-brno');
+        $this->getOrder(partnerId: 'PRT-1042');
         self::assertSame('2026-10-05', $this->responseBody()['expectedDeliveryDate']);
     }
 
     public function testNullDeliveryDateIsRejected(): void
     {
-        $this->postOrder(self::orderPayload());
+        $this->postOrder($this->orderPayload());
 
         $this->patchOrder(['expectedDeliveryDate' => null]);
 
-        self::assertProblem(422, 'validation-failed');
-        self::assertSame(['/expectedDeliveryDate'], self::errorPointers($this->responseBody()));
+        $this->assertProblem(422, 'validation-failed');
+        self::assertSame(['/expectedDeliveryDate'], $this->errorPointers($this->responseBody()));
     }
 
     public function testOverflowingCalendarDateIsRejected(): void
     {
-        $this->postOrder(self::orderPayload());
+        $this->postOrder($this->orderPayload());
 
         $this->patchOrder(['expectedDeliveryDate' => '2026-02-30']);
 
-        self::assertProblem(422, 'validation-failed');
-        self::assertSame(['/expectedDeliveryDate'], self::errorPointers($this->responseBody()));
+        $this->assertProblem(422, 'validation-failed');
+        self::assertSame(['/expectedDeliveryDate'], $this->errorPointers($this->responseBody()));
 
         $this->getOrder();
         self::assertSame('2026-10-05', $this->responseBody()['expectedDeliveryDate']);
@@ -100,22 +99,22 @@ final class PatchOrderControllerTest extends ApiTestCase
 
     public function testEmptyPatchIsRejected(): void
     {
-        $this->postOrder(self::orderPayload());
+        $this->postOrder($this->orderPayload());
 
         $this->patchOrder([]);
 
-        self::assertProblem(422, 'validation-failed');
-        self::assertSame(['/expectedDeliveryDate'], self::errorPointers($this->responseBody()));
+        $this->assertProblem(422, 'validation-failed');
+        self::assertSame(['/expectedDeliveryDate'], $this->errorPointers($this->responseBody()));
     }
 
     public function testFieldsOutsideTheContractAreRejected(): void
     {
-        $this->postOrder(self::orderPayload());
+        $this->postOrder($this->orderPayload());
 
         $this->patchOrder(['expectedDeliveryDate' => '2026-10-19', 'totalValue' => '5.00']);
 
-        self::assertProblem(422, 'validation-failed');
-        self::assertSame(['/totalValue'], self::errorPointers($this->responseBody()));
+        $this->assertProblem(422, 'validation-failed');
+        self::assertSame(['/totalValue'], $this->errorPointers($this->responseBody()));
 
         $this->getOrder();
         $body = $this->responseBody();

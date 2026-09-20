@@ -53,7 +53,7 @@ paths:
               description: Canonical URL of the created order
               schema:
                 type: string
-                examples: ['/api/v1/partners/nabytek-brno/orders/WEB-104172']
+                examples: ['/api/v1/partners/PRT-1042/orders/WEB-104172']
           content:
             application/json:
               schema:
@@ -75,8 +75,8 @@ paths:
                     type: https://api.favi.test/problems/duplicate-order
                     title: Duplicate Order
                     status: 409
-                    detail: Order "WEB-104172" already exists for partner "nabytek-brno".
-                    instance: /api/v1/partners/nabytek-brno/orders
+                    detail: Order "WEB-104172" already exists for partner "PRT-1042".
+                    instance: /api/v1/partners/PRT-1042/orders
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
@@ -155,7 +155,9 @@ components:
       name: partnerId
       in: path
       required: true
-      description: Partner-side identifier, any format, 1 to 64 characters
+      description: |
+        Partner-side identifier. Any string of 1 to 64 characters, including a
+        UUID; the examples use a short opaque id.
       schema:
         $ref: '#/components/schemas/ExternalId'
     OrderId:
@@ -319,7 +321,7 @@ components:
                 title: Bad Request
                 status: 400
                 detail: Request payload contains invalid "json" data.
-                instance: /api/v1/partners/nabytek-brno/orders
+                instance: /api/v1/partners/PRT-1042/orders
     UnsupportedMediaType:
       description: Request `Content-Type` is not JSON
       content:
@@ -333,7 +335,7 @@ components:
                 title: Unsupported Media Type
                 status: 415
                 detail: Unsupported format, expects "json", but "xml" given.
-                instance: /api/v1/partners/nabytek-brno/orders
+                instance: /api/v1/partners/PRT-1042/orders
     ValidationFailed:
       description: Body is well-formed but violates the schema
       content:
@@ -347,7 +349,7 @@ components:
                 title: Validation Failed
                 status: 422
                 detail: One or more fields are invalid.
-                instance: /api/v1/partners/nabytek-brno/orders
+                instance: /api/v1/partners/PRT-1042/orders
                 errors:
                   - pointer: /products/0/quantity
                     message: This value should be greater than or equal to 1.
@@ -363,8 +365,8 @@ components:
                 type: https://api.favi.test/problems/order-not-found
                 title: Order Not Found
                 status: 404
-                detail: Order "WEB-MISSING" was not found for partner "nabytek-brno".
-                instance: /api/v1/partners/nabytek-brno/orders/WEB-MISSING
+                detail: Order "WEB-MISSING" was not found for partner "PRT-1042".
+                instance: /api/v1/partners/PRT-1042/orders/WEB-MISSING
 
   examples:
     CreateOrderRequest:
@@ -386,7 +388,7 @@ components:
         expectedDeliveryDate: '2026-10-19'
     Order:
       value:
-        partnerId: nabytek-brno
+        partnerId: PRT-1042
         orderId: WEB-104172
         expectedDeliveryDate: '2026-10-05'
         totalValue: '47940.00'
@@ -403,7 +405,7 @@ components:
         updatedAt: '2026-09-21T10:15:00+00:00'
     PatchedOrder:
       value:
-        partnerId: nabytek-brno
+        partnerId: PRT-1042
         orderId: WEB-104172
         expectedDeliveryDate: '2026-10-19'
         totalValue: '47940.00'

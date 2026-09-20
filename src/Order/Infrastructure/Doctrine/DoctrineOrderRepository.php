@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace App\Order\Infrastructure\Doctrine;
 
+use App\Order\Domain\Entity\Order;
 use App\Order\Domain\Exception\DuplicateOrderException;
-use App\Order\Domain\Order;
-use App\Order\Domain\OrderRepository;
+use App\Order\Domain\Repository\OrderRepositoryInterface;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 
-final class DoctrineOrderRepository implements OrderRepository
+final class DoctrineOrderRepository implements OrderRepositoryInterface
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
     ) {
     }
 
-    public function add(Order $order): void
+    public function save(Order $order): void
     {
         $this->entityManager->persist($order);
 
@@ -28,7 +28,7 @@ final class DoctrineOrderRepository implements OrderRepository
         }
     }
 
-    public function find(string $partnerId, string $orderId): ?Order
+    public function findByPartnerAndOrderId(string $partnerId, string $orderId): ?Order
     {
         return $this->entityManager->getRepository(Order::class)->findOneBy([
             'partnerId' => $partnerId,
@@ -36,7 +36,7 @@ final class DoctrineOrderRepository implements OrderRepository
         ]);
     }
 
-    public function transactional(callable $work): mixed
+    public function wrapInTransaction(callable $work): mixed
     {
         return $this->entityManager->wrapInTransaction($work);
     }

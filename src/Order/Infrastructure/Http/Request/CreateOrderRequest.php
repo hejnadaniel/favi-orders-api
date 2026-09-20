@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Order\Infrastructure\Http\Request;
 
+use App\Order\Infrastructure\Http\Validator\ValidDecimalAmount;
 use Symfony\Component\Validator\Constraints as Assert;
 
 final readonly class CreateOrderRequest

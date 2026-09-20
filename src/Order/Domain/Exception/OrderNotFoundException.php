@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Order\Domain\Exception;
 
-use App\Shared\Problem\Problem;
+use App\Shared\Problem\ProblemInterface;
 use RuntimeException;
 
-final class OrderNotFoundException extends RuntimeException implements Problem
+final class OrderNotFoundException extends RuntimeException implements ProblemInterface
 {
     public function __construct(
         public readonly string $partnerId,
@@ -16,17 +16,17 @@ final class OrderNotFoundException extends RuntimeException implements Problem
         parent::__construct(\sprintf('Order "%s" was not found for partner "%s".', $orderId, $partnerId));
     }
 
-    public function slug(): string
+    public function getSlug(): string
     {
         return 'order-not-found';
     }
 
-    public function status(): int
+    public function getStatus(): int
     {
         return 404;
     }
 
-    public function title(): string
+    public function getTitle(): string
     {
         return 'Order Not Found';
     }
