@@ -76,50 +76,32 @@ každé prostředí může ukazovat na vlastní dokumentaci chyb.
 
 ## Proč to vypadá takhle
 
-**Datum doručení jako vlastní sub-resource s PUT.** Tělo requestu je celá
-reprezentace toho sub-resource, takže PUT sedí a idempotence není slib, ale
-vlastnost metody. Vyzkoušel jsem i obecný `PATCH` nad objednávkou s merge
-patchem. Dává smysl ve chvíli, kdy je měnitelných polí víc; u jediného pole
-se platí za pružnost, kterou nikdo nepoužije, a k tomu se otevírá otázka, co
-znamená `null` v těle. Až polí přibude, je přechod na `PATCH` na pár řádků.
+**PUT na datum doručení, ne PATCH na objednávku.** Mění se jedno pole a tělo
+requestu je celá jeho hodnota, takže PUT sedí a idempotence plyne z metody.
+Až bude polí víc, dává smysl přejít na PATCH.
 
-**GET endpoint navíc oproti zadání.** Odpověď 201 má podle HTTP ukazovat na
-nově vzniklý zdroj. Odkaz, který skončí na 405, je rozbitý slib, takže jsem
-raději dopsal i GET. Vedlejší efekt je, že integrační testy si ověřují
-uložený stav přes veřejné API a nešťourají v tabulkách.
+**GET navíc.** Zadání ho nechce, ale odpověď 201 vrací hlavičku `Location`
+a ta musí někam vést. Vedle toho díky němu testuju přes API místo přes
+databázi.
 
-**Peníze bez knihovny na desetinná čísla.** Peníze putují jako `string` od requestu
-až do sloupce `numeric(14, 2)` a nikde se nepřevádějí na `float`. Value
-object `DecimalAmount` si v konstruktoru ohlídá formát a doplní desetinná
-místa; jeho konstanty zároveň řídí mapování sloupce i validační pravidlo, aby
-ta čísla byla v kódu jen jednou. Sáhnout po `brick/math` by přineslo typovou
-pojistku proti float aritmetice, ale zaplatilo by se závislostí a k ní
-vlastním Doctrine typem, normalizerem a constrainty. Při pouhém ukládání se to
-nevyplatí. Jakmile by se s částkami začalo počítat, přepnul bych na ni.
+**Částky jako `string`, bez `brick/math`.** V databázi `numeric(14, 2)`, nikde
+`float`. Formát a rozsah hlídá `DecimalAmount`. Knihovna by dala typovou
+pojistku proti float aritmetice, ale musel bych k ní dopsat Doctrine typ,
+normalizer a validátory. Na ukládání to nestojí za to, na počítání ano.
 
-**Žádná měna ani daň.** Zadání o nich mlčí. Uložit cenu s tiše předpokládanou
-korunou znamená, že první partner účtující v eurech celý model zboří a oprava
-už nebude refaktor, ale migrace dat. Kdyby se měna dodělávala, patří na
-objednávku, řádky ji přebírají a kurz se musí zmrazit k okamžiku vzniku, jinak
-by pozdější přepočet měnil uzavřené účetnictví.
+**Bez měny a DPH.** Zadání je nezmiňuje. Tiše předpokládat korunu je horší než
+je nemít: první partner účtující v eurech znamená migraci dat, ne refaktor.
 
-**Celková částka se neověřuje.** Ukládá se přesně tak, jak dorazila. Rozdíl
-oproti součtu řádků sám o sobě nic nedokazuje; stát za ním může poštovné,
-množstevní sleva nebo zaokrouhlení, které v datech nevidíme. V provozu bych na
-ten rozdíl pověsil metriku, ale request bych propustil.
+**`totalValue` se ukládá, jak přijde.** Nepočítám ho ze součtu řádků ani ho
+proti němu neověřuju. Rozdíl může být sleva nebo poštovné. V provozu bych na
+něj dal metriku, ale request pustil.
 
-**Datum doručení v minulosti projde.** Zpětné opravy jsou běžné a posoudit úmysl je
-práce klienta, ne API. Co neprojde, je datum, které v kalendáři neexistuje:
-`2026-02-30` se kontroluje ještě jako text, protože jinak ho PHP potichu
-přesune na březen.
+**Datum v minulosti projde.** Zpětné opravy jsou běžné a posoudit úmysl je
+práce klienta. Datum, které v kalendáři neexistuje, jako `2026-02-30`, ale
+neprojde.
 
-**Identifikátor partnera v cestě.** V ostrém provozu by ho dodával
-autentizační token a klient by ho neposílal vůbec. Autentizace je ze zadání
-vyňatá, takže zůstává v URL.
-
-**Bez auditní stopy.** V B2B integraci by patřila mezi první doplňky, jenže
-bez přihlášení by sloupec "kdo" držel konstantu. Prázdná tabulka a mrtvá třída
-navíc nikomu nepomůžou.
+**`partnerId` v URL.** V ostrém provozu by šel z tokenu a klient by ho
+neposílal. Autentizace je mimo zadání.
 
 ## Rozjetí
 
