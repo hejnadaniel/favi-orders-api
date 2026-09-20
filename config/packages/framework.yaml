@@ -1,9 +1,6 @@
 framework:
     secret: '%env(APP_SECRET)%'
     session: false
-    request:
-        formats:
-            json: ['application/json', 'application/merge-patch+json']
 
 when@test:
     framework:

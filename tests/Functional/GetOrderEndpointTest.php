@@ -42,6 +42,6 @@ final class GetOrderEndpointTest extends ApiTestCase
         $this->client->request('DELETE', $this->orderPath(), server: ['HTTP_ACCEPT' => 'application/json']);
 
         $this->assertProblem(405, 'method-not-allowed');
-        self::assertResponseHeaderSame('Allow', 'GET, PATCH');
+        self::assertResponseHeaderSame('Allow', 'GET');
     }
 }

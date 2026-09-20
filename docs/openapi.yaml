@@ -103,33 +103,31 @@ paths:
                   $ref: '#/components/examples/Order'
         '404':
           $ref: '#/components/responses/OrderNotFound'
-    patch:
+
+  /api/v1/partners/{partnerId}/orders/{orderId}/delivery-date:
+    parameters:
+      - $ref: '#/components/parameters/PartnerId'
+      - $ref: '#/components/parameters/OrderId'
+    put:
       tags: [Orders]
-      operationId: patchOrder
+      operationId: changeOrderDeliveryDate
       summary: Change the expected delivery date
       description: |
-        Partial update following JSON Merge Patch (RFC 7396). In this version
-        `expectedDeliveryDate` is the only field that can change; it is required
-        in the body and must not be `null`. Unknown fields are rejected with
-        `422` and a pointer to each of them.
+        Replaces the expected delivery date of an existing order. The date is
+        the whole representation of this sub-resource, so it is required and
+        must not be `null`. Fields outside the contract are rejected.
 
         The request is idempotent: sending the same body twice leaves the order
         in the same state.
       requestBody:
         required: true
         content:
-          application/merge-patch+json:
-            schema:
-              $ref: '#/components/schemas/PatchOrderRequest'
-            examples:
-              postpone:
-                $ref: '#/components/examples/PatchOrderRequest'
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchOrderRequest'
+              $ref: '#/components/schemas/ChangeOrderDeliveryDateRequest'
             examples:
               postpone:
-                $ref: '#/components/examples/PatchOrderRequest'
+                $ref: '#/components/examples/ChangeOrderDeliveryDateRequest'
       responses:
         '200':
           description: The updated order
@@ -226,7 +224,7 @@ components:
           items:
             $ref: '#/components/schemas/CreateOrderProductRequest'
 
-    PatchOrderRequest:
+    ChangeOrderDeliveryDateRequest:
       type: object
       additionalProperties: false
       required: [expectedDeliveryDate]
@@ -386,7 +384,7 @@ components:
             name: Velvet dining chair, green
             price: '2490.00'
             quantity: 4
-    PatchOrderRequest:
+    ChangeOrderDeliveryDateRequest:
       value:
         expectedDeliveryDate: '2026-10-19'
     Order:

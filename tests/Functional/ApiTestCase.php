@@ -53,12 +53,12 @@ abstract class ApiTestCase extends WebTestCase
     /**
      * @param array<string, mixed> $payload
      */
-    protected function patchOrder(array $payload, string $orderId = self::ORDER_ID, string $partnerId = self::PARTNER_ID, string $contentType = 'application/merge-patch+json'): void
+    protected function putDeliveryDate(array $payload, string $orderId = self::ORDER_ID, string $partnerId = self::PARTNER_ID): void
     {
         $this->client->request(
-            'PATCH',
-            $this->orderPath($orderId, $partnerId),
-            server: ['CONTENT_TYPE' => $contentType, 'HTTP_ACCEPT' => 'application/json'],
+            'PUT',
+            $this->deliveryDatePath($orderId, $partnerId),
+            server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'],
             content: json_encode($payload, JSON_THROW_ON_ERROR),
         );
     }
@@ -71,6 +71,11 @@ abstract class ApiTestCase extends WebTestCase
     protected function orderPath(string $orderId = self::ORDER_ID, string $partnerId = self::PARTNER_ID): string
     {
         return \sprintf('/api/v1/partners/%s/orders/%s', $partnerId, $orderId);
+    }
+
+    protected function deliveryDatePath(string $orderId = self::ORDER_ID, string $partnerId = self::PARTNER_ID): string
+    {
+        return $this->orderPath($orderId, $partnerId) . '/delivery-date';
     }
 
     /**

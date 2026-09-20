@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controller\Api\V1;
 
+use App\Dto\Request\ChangeOrderDeliveryDateRequest;
 use App\Dto\Request\CreateOrderRequest;
-use App\Dto\Request\PatchOrderRequest;
 use App\Factory\ChangeOrderDeliveryDateFactory;
 use App\Factory\CreateOrderFactory;
 use App\Factory\OrderResponseFactory;
@@ -59,15 +59,15 @@ final class OrderController
         return new JsonResponse($this->orderResponseFactory->create($order));
     }
 
-    #[Route('/{orderId}', name: 'order_patch', methods: ['PATCH'])]
-    public function patch(
+    #[Route('/{orderId}/delivery-date', name: 'order_change_delivery_date', methods: ['PUT'])]
+    public function changeDeliveryDate(
         string $partnerId,
         string $orderId,
         #[MapRequestPayload(
             acceptFormat: 'json',
             serializationContext: [AbstractNormalizer::ALLOW_EXTRA_ATTRIBUTES => false],
         )]
-        PatchOrderRequest $request,
+        ChangeOrderDeliveryDateRequest $request,
     ): JsonResponse {
         $dto = $this->changeOrderDeliveryDateFactory->create($partnerId, $orderId, $request);
         $order = $this->changeOrderDeliveryDateHandler->handle($dto);

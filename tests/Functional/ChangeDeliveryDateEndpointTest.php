@@ -4,26 +4,14 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
-use PHPUnit\Framework\Attributes\DataProvider;
-
-final class PatchOrderEndpointTest extends ApiTestCase
+final class ChangeDeliveryDateEndpointTest extends ApiTestCase
 {
-    /**
-     * @return iterable<string, array{0: string}>
-     */
-    public static function provideAcceptedContentTypes(): iterable
-    {
-        yield 'merge patch' => ['application/merge-patch+json'];
-        yield 'plain json' => ['application/json'];
-    }
-
-    #[DataProvider('provideAcceptedContentTypes')]
-    public function testReplacesDeliveryDateAndLeavesEverythingElseUntouched(string $contentType): void
+    public function testReplacesDeliveryDateAndLeavesEverythingElseUntouched(): void
     {
         $this->postOrder($this->orderPayload());
         $created = $this->responseBody();
 
-        $this->patchOrder(['expectedDeliveryDate' => '2026-10-19'], contentType: $contentType);
+        $this->putDeliveryDate(['expectedDeliveryDate' => '2026-10-19']);
 
         self::assertResponseStatusCodeSame(200);
         self::assertResponseHeaderSame('Content-Type', 'application/json');
@@ -44,9 +32,9 @@ final class PatchOrderEndpointTest extends ApiTestCase
     {
         $this->postOrder($this->orderPayload());
 
-        $this->patchOrder(['expectedDeliveryDate' => '2026-10-19']);
+        $this->putDeliveryDate(['expectedDeliveryDate' => '2026-10-19']);
         $first = $this->responseBody();
-        $this->patchOrder(['expectedDeliveryDate' => '2026-10-19']);
+        $this->putDeliveryDate(['expectedDeliveryDate' => '2026-10-19']);
 
         self::assertResponseStatusCodeSame(200);
         self::assertSame($first['expectedDeliveryDate'], $this->responseBody()['expectedDeliveryDate']);
@@ -54,23 +42,23 @@ final class PatchOrderEndpointTest extends ApiTestCase
 
     public function testUnknownOrderIsNotFound(): void
     {
-        $this->patchOrder(['expectedDeliveryDate' => '2026-10-19'], orderId: 'WEB-UNKNOWN');
+        $this->putDeliveryDate(['expectedDeliveryDate' => '2026-10-19'], 'WEB-UNKNOWN');
 
         $this->assertProblem(404, 'order-not-found');
         $problem = $this->responseBody();
         self::assertSame('Order Not Found', $problem['title']);
-        self::assertSame($this->orderPath('WEB-UNKNOWN'), $problem['instance']);
+        self::assertSame($this->deliveryDatePath('WEB-UNKNOWN'), $problem['instance']);
     }
 
     public function testAnotherPartnerCannotTouchTheOrder(): void
     {
-        $this->postOrder($this->orderPayload(), 'PRT-1042');
+        $this->postOrder($this->orderPayload(), self::PARTNER_ID);
 
-        $this->patchOrder(['expectedDeliveryDate' => '2026-10-19'], partnerId: self::OTHER_PARTNER_ID);
+        $this->putDeliveryDate(['expectedDeliveryDate' => '2026-10-19'], self::ORDER_ID, self::OTHER_PARTNER_ID);
 
         $this->assertProblem(404, 'order-not-found');
 
-        $this->getOrder(partnerId: 'PRT-1042');
+        $this->getOrder(partnerId: self::PARTNER_ID);
         self::assertSame('2026-10-05', $this->responseBody()['expectedDeliveryDate']);
     }
 
@@ -78,7 +66,7 @@ final class PatchOrderEndpointTest extends ApiTestCase
     {
         $this->postOrder($this->orderPayload());
 
-        $this->patchOrder(['expectedDeliveryDate' => null]);
+        $this->putDeliveryDate(['expectedDeliveryDate' => null]);
 
         $this->assertProblem(422, 'validation-failed');
         self::assertSame(['/expectedDeliveryDate'], $this->errorPointers($this->responseBody()));
@@ -88,7 +76,7 @@ final class PatchOrderEndpointTest extends ApiTestCase
     {
         $this->postOrder($this->orderPayload());
 
-        $this->patchOrder(['expectedDeliveryDate' => '2026-02-30']);
+        $this->putDeliveryDate(['expectedDeliveryDate' => '2026-02-30']);
 
         $this->assertProblem(422, 'validation-failed');
         self::assertSame(['/expectedDeliveryDate'], $this->errorPointers($this->responseBody()));
@@ -97,11 +85,11 @@ final class PatchOrderEndpointTest extends ApiTestCase
         self::assertSame('2026-10-05', $this->responseBody()['expectedDeliveryDate']);
     }
 
-    public function testEmptyPatchIsRejected(): void
+    public function testEmptyBodyIsRejected(): void
     {
         $this->postOrder($this->orderPayload());
 
-        $this->patchOrder([]);
+        $this->putDeliveryDate([]);
 
         $this->assertProblem(422, 'validation-failed');
         self::assertSame(['/expectedDeliveryDate'], $this->errorPointers($this->responseBody()));
@@ -111,7 +99,7 @@ final class PatchOrderEndpointTest extends ApiTestCase
     {
         $this->postOrder($this->orderPayload());
 
-        $this->patchOrder(['expectedDeliveryDate' => '2026-10-19', 'totalValue' => '5.00']);
+        $this->putDeliveryDate(['expectedDeliveryDate' => '2026-10-19', 'totalValue' => '5.00']);
 
         $this->assertProblem(422, 'validation-failed');
         self::assertSame(['/totalValue'], $this->errorPointers($this->responseBody()));
