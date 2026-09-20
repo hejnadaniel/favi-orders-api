@@ -1,19 +1,20 @@
-# FAVI Partner Orders API
+# Orders REST API
 
-REST API through which partner shops submit their orders and later change the
-expected delivery date. PHP 8.4, Symfony 8.1, Doctrine ORM 3, PostgreSQL 16.
+REST API, kterým partneři (obchody) posílají svoje objednávky a mění u nich
+datum doručení. Postaveno na PHP 8.4, Symfony 8.1 a Doctrine ORM 3, databáze
+PostgreSQL 16.
 
-Contract: [`docs/openapi.yaml`](docs/openapi.yaml) (OpenAPI 3.1, written before
-the code). Example payloads: [`docs/examples/`](docs/examples).
+## Co je potřeba
 
-## Requirements
-
-- PHP 8.4 with `pdo_pgsql`, `intl`, `mbstring`
+- PHP 8.4 s rozšířeními `pdo_pgsql`, `intl` a `mbstring`
 - Composer 2
-- Docker (local PostgreSQL)
-- Node 22, only for `composer openapi:lint` (runs Spectral through `npx`)
+- Docker, kvůli lokálnímu Postgresu
+- Node 22, ale jen pro `composer openapi:lint`, který si Spectral stáhne přes `npx`
 
-## Run
+Symfony CLI potřeba není. Projekt schválně běží i na vestavěném PHP serveru,
+aby se dal spustit bez instalace čehokoliv navíc.
+
+## Spuštění
 
 ```bash
 docker compose up -d
@@ -22,227 +23,335 @@ php bin/console doctrine:migrations:migrate --no-interaction
 php -S 127.0.0.1:8000 -t public
 ```
 
-If port 5432 is taken on your machine, start the database with
-`POSTGRES_HOST_PORT=5434 docker compose up -d` and put the matching
-`DATABASE_URL` into `.env.local` and `.env.test.local`.
+API pak poslouchá na `http://127.0.0.1:8000`.
 
-## Quality gate
+Pokud máte port 5432 obsazený vlastním Postgresem, spusťte databázi na jiném
+portu a stejnou adresu si zapište do `.env.local` a `.env.test.local`:
+
+```bash
+POSTGRES_HOST_PORT=5434 docker compose up -d
+```
+
+## Testy a kontrola kvality
+
+Všechno jednou ranou:
 
 ```bash
 composer check
 ```
 
-Runs, in order:
+Postupně se spustí:
 
-- `composer lint` - php-cs-fixer, PER-CS 2.0 + Symfony rule sets, dry run
-- `composer stan` - PHPStan level max with strict rules, no baseline
-- `composer openapi:lint` - Spectral on `docs/openapi.yaml`
-- `composer test` - PHPUnit, unit and functional suites
+- `composer lint` — php-cs-fixer v režimu dry-run, tedy kontrola stylu
+- `composer stan` — PHPStan na `level: max` se strict rules, bez baseline
+- `composer openapi:lint` — Spectral nad `docs/openapi.yaml`
+- `composer test` — PHPUnit, unit i integrační testy
 
-Functional tests need the test database once:
-
-```bash
-composer db:test:reset
-```
-
-`dama/doctrine-test-bundle` wraps every test in a transaction and rolls it
-back, so tests never see each other's rows and the suite is order-independent.
-
-CI (`.github/workflows/ci.yml`) runs the same `composer check` against a
-PostgreSQL service container on every push to `main` and every pull request.
-
-## API tour
-
-All endpoints live under `/api/v1/partners/{partnerId}`. The partner is
-identified by the URL only; the body never repeats it.
-
-### Create an order
+Hodí se ještě:
 
 ```bash
-curl -sS -i -X POST http://127.0.0.1:8000/api/v1/partners/PRT-1042/orders \
-  -H 'Content-Type: application/json' \
-  --data @docs/examples/create-order.json
+composer lint:fix        # automatická oprava stylu
+composer db:test:reset   # drop + create + migrate testovací databáze
+composer schema:validate # kontrola mapování proti schématu
 ```
+
+Integrační testy potřebují testovací databázi, takže `composer db:test:reset`
+je potřeba spustit jednou před prvním během.
+
+CI (`.github/workflows/ci.yml`) pouští stejný `composer check` proti
+Postgresu v kontejneru na každý push do `main` a na každý pull request.
+
+## API ve zkratce
+
+Kompletní kontrakt je v [`docs/openapi.yaml`](docs/openapi.yaml), psaný před
+kódem. Ukázková těla requestů jsou v [`docs/examples/`](docs/examples).
+
+Všechny endpointy žijí pod `/api/v1/partners/{partnerId}`. Partnera určuje
+výhradně URL, tělo requestu ho nikdy neopakuje.
+
+### Vytvoření objednávky
 
 ```http
-HTTP/1.1 201 Created
+POST /api/v1/partners/{partnerId}/orders
 Content-Type: application/json
-Location: /api/v1/partners/PRT-1042/orders/WEB-104172
 
-{"partnerId":"PRT-1042","orderId":"WEB-104172","expectedDeliveryDate":"2026-10-05","totalValue":"47940.00","products":[{"productId":"SOFA-OSLO-3S","name":"Oslo three-seater sofa, grey","price":"18990.00","quantity":2},{"productId":"CHAIR-VELVET-GRN","name":"Velvet dining chair, green","price":"2490.00","quantity":4}],"createdAt":"2026-09-17T15:56:42+00:00","updatedAt":"2026-09-17T15:56:42+00:00"}
+{
+  "orderId": "WEB-104172",
+  "expectedDeliveryDate": "2026-10-05",
+  "totalValue": "47940.00",
+  "products": [
+    {"productId": "SOFA-OSLO-3S", "name": "Oslo three-seater sofa, grey", "price": "18990.00", "quantity": 2}
+  ]
+}
 ```
 
-Sending the same `(partnerId, orderId)` again never overwrites anything:
+- `201 Created` plus hlavička `Location` a uložená objednávka v těle
+- `409 Conflict` když dvojice `(partnerId, orderId)` už existuje. Druhé poslání
+  nikdy nic nepřepíše.
+- `422 Unprocessable Entity` při chybě validace, s polem `errors[]`, kde každá
+  položka nese JSON Pointer na konkrétní pole a popis
+- `415 Unsupported Media Type` při jiném Content-Type než `application/json`
+- `400 Bad Request` při rozbitém JSONu
+
+### Změna data doručení
+
+```http
+PUT /api/v1/partners/{partnerId}/orders/{orderId}/delivery-date
+Content-Type: application/json
+
+{"expectedDeliveryDate": "2026-10-19"}
+```
+
+- `200 OK` a celé tělo aktualizované objednávky
+- `404 Not Found` když objednávka neexistuje, včetně případu, kdy patří jinému
+  partnerovi. Napříč partnery se nedá sáhnout na cizí data.
+- PUT je idempotentní, stejné tělo vede na stejný výsledný stav
+
+### Přečtení objednávky
+
+```http
+GET /api/v1/partners/{partnerId}/orders/{orderId}
+```
+
+- `200 OK` a uložená objednávka
+- `404 Not Found` když neexistuje
+
+### Chyby
+
+Všechny chybové odpovědi jsou Problem Details podle RFC 9457, tedy
+`application/problem+json`:
 
 ```json
-{"type":"https://api.favi.test/problems/duplicate-order","title":"Duplicate Order","status":409,"detail":"Order \"WEB-104172\" already exists for partner \"PRT-1042\".","instance":"/api/v1/partners/PRT-1042/orders"}
+{
+  "type": "https://api.favi.test/problems/validation-failed",
+  "title": "Validation Failed",
+  "status": 422,
+  "detail": "One or more fields are invalid.",
+  "instance": "/api/v1/partners/PRT-1042/orders",
+  "errors": [
+    {"pointer": "/products/0/quantity", "message": "This value should be between 1 and 1000000."}
+  ]
+}
 ```
 
-Validation failures carry one JSON Pointer per field:
+Základ URI v poli `type` je řízený proměnnou prostředí `PROBLEM_TYPE_BASE_URI`,
+aby si staging i produkce mohly publikovat vlastní dokumentaci chyb.
 
-```json
-{"type":"https://api.favi.test/problems/validation-failed","title":"Validation Failed","status":422,"detail":"One or more fields are invalid.","instance":"/api/v1/partners/PRT-1042/orders","errors":[{"pointer":"/totalValue","message":"This value should be a non-negative decimal with at most 12 integer and 2 fractional digits."},{"pointer":"/products/0/quantity","message":"This value should be greater than or equal to 1."}]}
+## Architektura
+
+Klasické vrstvení:
+
 ```
-
-### Change the expected delivery date
-
-```bash
-curl -sS -i -X PATCH http://127.0.0.1:8000/api/v1/partners/PRT-1042/orders/WEB-104172 \
-  -H 'Content-Type: application/merge-patch+json' \
-  --data @docs/examples/patch-order.json
+Controller (HTTP)
+  -> Factory (překlad requestu na vstup služby)
+  -> Handler (logika případu užití)
+     -> Repository interface (Doctrine adapter)
 ```
-
-Returns `200 OK` with the whole updated order. `application/json` is accepted
-as well. Fields other than `expectedDeliveryDate` are rejected with `422`, an
-unknown order (including one that belongs to another partner) with `404`.
-
-### Read an order
-
-```bash
-curl -sS http://127.0.0.1:8000/api/v1/partners/PRT-1042/orders/WEB-104172
-```
-
-| Situation | Status |
-|---|---|
-| Created | 201 + `Location` |
-| Read or updated | 200 |
-| Malformed JSON | 400 |
-| Unknown order, unknown route | 404 |
-| Method not supported on the path | 405 + `Allow` |
-| Duplicate `(partnerId, orderId)` | 409 |
-| `Content-Type` other than JSON | 415 |
-| Schema violation, unknown field | 422 + `errors[]` |
-| Anything unexpected | 500, opaque body, details only in logs |
-
-Every error is `application/problem+json` (RFC 9457). The base of the `type`
-URI comes from `PROBLEM_TYPE_BASE_URI`, so staging and production can publish
-their own problem documentation.
-
-## Architecture
 
 ```
 src/
-  Controller/Api/V1/  OrderController: one class for the order resource
-  Dto/                CreateOrder, ChangeOrderDeliveryDate (service input)
-    Request/          inbound DTOs with validation constraints
-    Response/         outbound DTOs
-  Entity/             Order, OrderProduct
-  EventListener/      ProblemDetailsListener
-  Exception/          domain exceptions and the ProblemInterface they implement
-  Factory/            request DTO -> service DTO, entity -> response DTO
-  Repository/         OrderRepositoryInterface and its Doctrine adapter
-  Service/            CreateOrderHandler, ChangeOrderDeliveryDateHandler,
-                      GetOrderHandler, CalendarDateParser
-  Validator/          ValidDecimalAmount compound constraint
-  ValueObject/        DecimalAmount, ProductLine
+  Controller/Api/V1/   OrderController, jedna třída pro celý resource
+  Dto/                 CreateOrder, ChangeOrderDeliveryDate (vstupy služeb)
+    Request/           příchozí DTO s validačními pravidly
+    Response/          odchozí DTO
+  Entity/              Order, OrderProduct
+  EventListener/       ProblemDetailsListener
+  Exception/           doménové výjimky a ProblemInterface
+  Factory/             request DTO -> vstup služby, entita -> odpověď
+  Repository/          OrderRepositoryInterface a jeho Doctrine adapter
+  Service/             tři handlery a CalendarDateParser
+  Validator/           ValidDecimalAmount
+  ValueObject/         DecimalAmount, ProductLine
 ```
 
-Folders are named after what the classes inside are, so a handler is never
-mistaken for a DTO. There are no static methods anywhere in `src/`: objects are
-built with constructors, and anything that needs collaborators (clock, parser)
-is an injected service.
+- Služby závisí na `OrderRepositoryInterface`, ne na Doctrine třídě za ním.
+  Unit testy proto používají in-memory implementaci a vůbec nestartují kernel.
+- Entity si hlídají vlastní invarianty. Konstruktor objednávky odmítne prázdný
+  seznam produktů, `ProductLine` odmítne množství pod jedna a `DecimalAmount`
+  odmítne cokoliv, co není nezáporné desetinné číslo vejdoucí se do sloupce.
+  Jediná povolená změna je `Order::changeExpectedDeliveryDate()`.
+- V `src/` není jediná statická metoda. Objekty se staví konstruktorem a
+  cokoliv, co potřebuje spolupracovníka, je injectovaná služba.
+- Validace běží na třech úrovních: DTO hlídá tvar a vrací 422, doména hlídá
+  invarianty a unikátní index v databázi je jediná pojistka, která obstojí při
+  souběžných requestech.
+- Všechny chyby tečou přes `ProblemDetailsListener`, tedy jedno místo, které
+  mapuje výjimky na Problem Details. Nový druh chyby znamená novou výjimku se
+  třemi metodami, do listeneru se nesahá a není v něm žádný switch.
+- Interní primární klíč je UUID v7 ze `symfony/uid`. Navenek se používá
+  partnerská dvojice `(partnerId, orderId)`, interní ID se nikdy nezveřejňuje.
+- Produktové řádky mají sloupec `position`, takže se čtou přesně v tom pořadí,
+  v jakém je partner poslal.
 
-- Services depend on `OrderRepositoryInterface`, not on the Doctrine class
-  behind it; unit tests use an in-memory implementation and never boot the
-  kernel.
-- Entities own their invariants: the `Order` constructor refuses an empty
-  product list, `ProductLine` refuses a quantity below one, `DecimalAmount`
-  refuses anything that is not a non-negative decimal with at most two
-  fractional digits. The only mutation is `Order::changeExpectedDeliveryDate()`.
-- The controller maps an HTTP request to an application DTO and an entity to a
-  response; nothing else. One class covers the order resource, one method per
-  operation.
-  `#[MapRequestPayload]` does deserialization and validation, and the
-  translation itself lives in injected factories rather than in the controller.
-- One `kernel.exception` listener produces every error response. A domain
-  exception becomes an API error by implementing `ProblemInterface` (slug,
-  status, title); the listener never needs a `switch` over exception classes.
-- Validation is layered: request DTO (shape, 422), domain (invariants), database
-  (unique index, the only guard that holds under concurrent submissions).
+### Testy
 
-## Tests
+- Unit testy nad doménou a službami (`tests/Entity`, `tests/ValueObject`,
+  `tests/Service`) běží v řádu milisekund a pokrývají šťastné i nešťastné
+  cesty, hranice, idempotenci a výjimky. To je ta část, kterou zadání chtělo
+  pokrýt "jak bych to dělal při standardním vývoji".
+- Integrační `WebTestCase` na všechny tři endpointy (`tests/Functional`)
+  projdou celý HTTP cyklus proti Postgresu, včetně mapování DTO a všech
+  dokumentovaných chybových stavů. To je bonus ze zadání.
+- `tests/EventListener` zvlášť fixuje překlad výjimek na Problem Details.
+- Místo mocků se používají fakes, hlavně in-memory repozitář.
+- `dama/doctrine-test-bundle` obalí každý databázový test transakcí a na konci
+  ji rollbackne, takže testy mezi sebou neinterferují a nezáleží na pořadí.
 
-The part covered "as in standard development" is the application and domain
-layer: the tests mirror the source folders, run in milliseconds,
-use fakes rather than mocks, and cover happy paths, boundaries (amount and
-quantity limits), idempotency, duplicate and not-found paths.
+## O čem jsem přemýšlel a co bych dělal jinak
 
-The bonus integration test is the functional suite in `tests/Functional`: full HTTP round trips against PostgreSQL for
-all three operations, including every documented error response.
-`tests/EventListener` pins the problem-details mapping itself.
+Věci, které jsem udělal jinak, než bych je dělal v ostrém provozu, nebo je
+vědomě vynechal.
 
-```
-composer test
-PHPUnit 13, 67 tests, 0 failures
-```
+### partnerId v URL versus autentizační token
 
-## Design decisions
+Endpoint teď bere `partnerId` z URL. V ostrém provozu by partnera měl určovat
+autentizační mechanismus, tedy API klíč, OAuth scope nebo subject v JWT.
+Klient by ho neposílal sám, server by si ho vytáhl z tokenu. Tím zmizí celá
+třída chyb, protože klient nemůže omylem ani schválně poslat data za jiného
+partnera. Zadání autentizaci explicitně vyřazuje, takže partnerId zůstává
+v URL.
 
-**Hierarchical URLs.** `/partners/{partnerId}/orders/{orderId}` rather than a
-flat composite. Partners are a domain concept; future partner-scoped resources
-(products, shipments) slot in without restructuring, and once authentication
-exists the partner segment is the natural place to enforce it.
+### GET endpoint navíc
 
-**PATCH with JSON Merge Patch for the delivery date.** The assignment asks for
-"an endpoint to change the delivery date". Two designs fit: an action endpoint
-per field (`PUT .../delivery-date`) or a document-oriented `PATCH` on the
-order. I chose `PATCH` with an RFC 7396 body: the second patchable field is one
-property in `PatchOrderRequestDto`, not a new route, and the resource keeps one
-canonical URL. Unknown fields are rejected so the schema stays explicit. The
-trade-off is that per-field authorization would live in the service rather
-than on the route.
+Zadání chce dva endpointy, tady jsou tři. Odpověď `201 Created` má podle
+standardu nést hlavičku `Location` s adresou vytvořeného zdroje, a `Location`,
+které vrací 405, je rozbitý kontrakt. Čtecí endpoint stojí jednu metodu
+v controlleru a jeden případ užití, takže mi přišlo správnější ho dopsat než
+hlavičku vynechat. Navíc se díky němu dají integrační testy psát přes veřejné
+API a nemusí šťourat v databázi.
 
-**A `GET` that was not asked for.** `201 Created` must carry a `Location`, and
-a `Location` that returns 405 is a broken contract. The read endpoint costs one
-controller and one use case.
+### PUT na datum doručení, ne PATCH na objednávku
 
-**Amounts are decimal strings, not floats and not a Money library.** Doctrine
-`numeric(14, 2)` maps to a PHP `string`; `DecimalAmount` validates and
-normalises it. Its precision and scale constants drive both the column mapping
-and the request validation, so the accepted format is exactly what the column
-can store without rounding or overflow. No `brick/money`: the assignment has no currency, so there is
-nothing for a Money type to protect, and the library would add a custom
-Doctrine type, a normalizer and validators for no benefit within 8 hours.
+Změna data doručení má vlastní sub-resource a metodu PUT. Tělo requestu je
+celá reprezentace toho sub-resource, takže PUT je poctivá volba a idempotence
+plyne ze sémantiky, ne z domluvy. Partner navíc čte jednu konkrétní
+dokumentovanou operaci místo obecného editoru, u kterého o výsledku rozhoduje
+tělo.
 
-**No currency field.** The specification does not mention one and asks for raw
-data to be stored as it arrived. Guessing `CZK` would be wrong for the first
-foreign partner and a silent default is worse than an explicit gap. When it is
-needed: ISO 4217 code on the order, inherited by the lines, plus a fixed
-exchange rate at creation time for reporting.
+Zkoušel jsem předtím i variantu s `PATCH /orders/{orderId}` a JSON Merge Patch
+podle RFC 7396. Funguje to a má to svoje kouzlo ve chvíli, kdy je
+aktualizovatelných polí víc, protože další pole je pak jen vlastnost v DTO
+a žádná nová routa. Při jednom poli to ale znamená platit za obecnost, kterou
+nikdo nevyužije, a otevírat otázku, co znamená `null` v těle. Kdyby přibylo
+víc měnitelných polí, vrátil bych se k PATCH a nechal PUT jen tam, kde se
+opravdu nahrazuje celá reprezentace.
 
-**`totalValue` is stored as sent.** Not recomputed from the lines, not
-verified against them. A mismatch is not necessarily an error (discounts,
-rounding, shipping), so the right production follow-up is a metric on
-`total != sum(price * quantity)`, not a rejection.
+### Peníze bez knihovny
 
-**Past delivery dates are accepted.** Backdating is a legitimate correction
-and the API has no business rule that says otherwise. Overflowing dates such as
-`2026-02-30` are rejected, though: `Assert\Date` runs before any conversion,
-because `createFromFormat()` would silently roll them over to March.
+Částky jsou v celé cestě `string`, v databázi `numeric(14, 2)`. Nikde se
+nepracuje s `float`, protože tam se dřív nebo později ztratí haléř. Hlídá to
+hodnotový objekt `DecimalAmount`, který si v konstruktoru ověří tvar
+a normalizuje počet desetinných míst. Jeho konstanty `PRECISION` a `SCALE`
+zároveň řídí mapování sloupce i validační pravidlo, takže to číslo je v kódu
+napsané jednou.
 
-**UUID v7 internal keys.** Time-ordered, so inserts append to the primary key
-index instead of fragmenting it as v4 does. The partner-facing identity remains
-`(partnerId, orderId)`; internal ids never appear in the API.
+Šlo by na to použít `brick/math` a ukládat `BigDecimal`. Dá to typovou záruku,
+že nad částkou nikdo nezavolá float operaci, protože prostě neexistuje. Cena
+je jedna závislost navíc a k ní vlastní Doctrine typ, normalizer do serializeru
+a vlastní validační constrainty, protože `BigDecimal` není skalár a nikdo z toho
+řetězce ho neumí sám. Pro tenhle rozsah mi nepřišlo správné přidávat závislost
+kvůli něčemu, co dvě malé třídy pokryjí. Kdyby se s částkami začalo skutečně
+počítat, tedy sčítat, násobit sazbou nebo přepočítávat měnu, přešel bych na
+`brick/math` hned, protože tam už ta typová pojistka vydělá.
 
-**Product lines keep their submission order.** An explicit `position` column
-with an `OrderBy` mapping, so a read-back returns exactly what was sent.
+### Měna
 
-**No authentication.** Explicitly out of scope. With it, the partner would come
-from the credential (API key, OAuth scope) and the `{partnerId}` segment would
-be validated against it or dropped from the URL entirely.
+Zadání měnu nezmiňuje, takže v modelu není. Je to vědomé: cena bez měny není
+peněžní hodnota, je to jen číslo. Jakmile by se uložila s implicitním
+předpokladem, typicky CZK, rozbije ho první partner s eshopem v eurech,
+a oprava po faktu už není změna modelu, ale migrace dat.
 
-**Strictness.** `declare(strict_types=1)` everywhere, `final` by default,
-readonly DTOs, asymmetric visibility on entities instead of getters, PHPStan at
-`level: max` with strict rules and no baseline, php-cs-fixer on PER-CS 2.0.
+Čistý model měny stojí na třech věcech. ISO 4217 kód jako číselník. Měnu nese
+objednávka a produktové řádky ji dědí, protože jedna objednávka v několika
+měnách nedává účetní smysl. A při přepočtu do reportingové měny musí být kurz
+zafixovaný k okamžiku vzniku objednávky, jinak by pozdější přepočet zpětně
+měnil už uzavřené účetní výstupy.
 
-## What I would do next
+### DPH
 
-- Authentication (API key per partner) and rate limiting per partner.
-- `Idempotency-Key` support on `POST` so retries after a network failure do not
-  need to interpret `409`.
-- Currency (Money pattern) and VAT breakdown, once the domain defines them.
-- Observability: a metric on `totalValue` mismatches, request logging with
-  partner and order ids.
-- Domain events (`OrderPlaced`, `DeliveryDateChanged`) once a second consumer
-  exists; today nothing would listen.
-- List endpoint with cursor pagination, if FAVI needs read-back at scale.
+Stejná logika jako u měny. `price` a `totalValue` jsou teď "číslo, které
+přišlo". Nevíme, jestli s daní nebo bez, neumíme to rozlišit a neumíme to
+dopočítat. Reálně by se to chtělo rozdělit na cenu bez daně, sazbu a cenu
+s daní, a navázat na číselník sazeb. To je netriviální doména, protože sazba
+se mění zákonem a uplatňuje se podle druhu zboží i místa dodání, takže bez
+konkrétního zadání jsem do toho nešel.
+
+### Celková hodnota objednávky
+
+`totalValue` se ukládá přesně tak, jak ji partner poslal. Nedopočítává se ze
+součtu produktů a ani se s ním neporovnává, protože zadání chce uložit, co
+přišlo. V provozu bych přidal jednu věc: při rozdílu mezi celkovou hodnotou
+a součtem řádků logovat metriku, ale request neodmítnout. Rozdíl totiž nemusí
+být chyba, může jít o slevu, akční cenu, dopravu nebo zaokrouhlení, které
+nevidíme. Kolik objednávek chodí s nesedícím součtem je ale zajímavé číslo pro
+datový tým.
+
+### Datum doručení v minulosti
+
+Backend přijme i datum v minulosti a uloží ho. Držíme se zadání, takže tvrdá
+validace by šla proti jeho smyslu. Kontrolu úmyslu považuji za úlohu klienta,
+tedy zobrazit potvrzení ve stylu "opravdu chcete datum v minulosti". Tím se
+chytí překlepy, ale legitimní zpětné opravy, třeba po vrácení zboží nebo po
+špatném importu, projdou. Tvrdé omezení na backendu by bez konkrétního
+obchodního pravidla blokovalo i tyhle případy.
+
+Co se ale odmítá, je datum, které neexistuje. `2026-02-30` by PHP tiše
+překlopilo na druhého března, takže se datum nejdřív validuje jako řetězec
+a teprve pak převádí.
+
+### UUID v7 jako interní klíč
+
+V7 má časovou složku, takže nové záznamy jdou na konec indexu místo aby ho
+tříštily jako čistě náhodné v4. Při současném objemu je to jedno, při vyšším
+zápisu to začne být znát, a nic to nestojí.
+
+### Audit log
+
+Nedělám ho. V B2B integracích je auditní stopa často regulatorní požadavek
+a "kdo to změnil" bývá první otázka při každém sporu, takže v ostrém provozu
+by to byla jedna z prvních věcí. Prakticky by to byla tabulka se záznamem kdo,
+kdy, na čem a co se změnilo, zapisovaná ve stejné transakci jako samotná
+změna, aby nemohl nastat stav "data se změnila, ale audit chybí". Bez
+autentizace by ale to "kdo" byla konstanta, takže by to teď byla mrtvá tabulka
+a mrtvá třída navíc.
+
+## Na co jsem narazil
+
+Věci, které při vývoji nefungovaly a stály čas. Píšu je sem, protože z nich je
+víc vidět než z hotového kódu.
+
+- **Symfony 8.0 neumělo vygenerovat migraci.** Doctrine bridge ve verzi 8.0
+  volá `GenerateSchemaEventArgs::setSchema()` bez podmínky, jenže ORM 3.7 to
+  na DBAL 4.4 odmítne, protože potřebné API je až v nevydaném DBAL 4.5.
+  `doctrine:migrations:diff` tím padal. Bridge v 8.1 to volání podmiňuje,
+  takže projekt běží na 8.1. Osmičková nula už je navíc po konci údržby.
+- **Serializer nedenormalizoval vnořené produkty.** Typ `list<CreateOrderProductRequest>`
+  je jen v docblocku konstruktoru, takže na něj property-info samo nedosáhne.
+  Chtělo to zapnout `with_constructor_extractor` a doinstalovat
+  `phpstan/phpdoc-parser` s `phpdocumentor/type-resolver`. Bez toho přišlo do
+  handleru pole polí místo pole objektů.
+- **CI padalo na `composer validate --strict`.** Composer si zapsal
+  `phpstan/phpdoc-parser` s omezením `*`, protože balíček už v projektu byl
+  jako tranzitivní závislost, a striktní validace nevázané omezení odmítá.
+- **Dvě díry ve validaci, obě končily pětistovkou.** Množství nad rozsah
+  integer sloupce prošlo validací a spadlo až v Postgresu. Objednávka
+  s desítkami tisíc řádků vyčerpala paměť PHP ještě při validaci, a sloupec
+  `position` je smallint, takže by stejně přetekl. Obojí teď končí na 422
+  s ukazatelem na konkrétní pole, meze jsou milion kusů na položku a tisíc
+  položek na objednávku.
+
+## Coding standard
+
+PHP 8.4 naplno: `readonly` třídy pro DTO, asymetrická viditelnost u entit
+místo getterů, promoce vlastností v konstruktoru, `declare(strict_types=1)`
+v každém souboru a `final` jako výchozí stav.
+
+PHPStan na `level: max` se strict rules a rozšířeními pro Symfony, Doctrine
+i PHPUnit, bez baseline. Chyby se mají chytat při statické analýze, ne
+v provozních logách.
+
+php-cs-fixer s `@PER-CS2.0`, `@PHP84Migration`, `@Symfony` a `@Symfony:risky`.
+
+Komentáře v kódu skoro nejsou. Docblocky nesou jen typové informace, které
+nativní signatura neumí vyjádřit, tedy generika a tvary polí. Zbytek má říct
+název.
