@@ -134,7 +134,7 @@ src/
     Infrastructure/
       Doctrine/       DoctrineOrderRepository
       Http/
-        Controller/   one controller per operation
+        Controller/   OrderController: one class per resource
         Request/      inbound DTOs with validation constraints
         Response/     outbound DTOs
         Factory/      request -> command and entity -> response translation
@@ -156,7 +156,8 @@ is an injected service.
   product list, `ProductLine` refuses a quantity below one, `DecimalAmount`
   refuses anything that is not a non-negative decimal with at most two
   fractional digits. The only mutation is `Order::changeExpectedDeliveryDate()`.
-- Controllers map HTTP to a command and a command to a response; nothing else.
+- The controller maps HTTP to a command and a command to a response; nothing
+  else. One class covers the order resource, one method per operation.
   `#[MapRequestPayload]` does deserialization and validation, and the
   translation itself lives in injected factories rather than in the controller.
 - One `kernel.exception` listener produces every error response. A domain

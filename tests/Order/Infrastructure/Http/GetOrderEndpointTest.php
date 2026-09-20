@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Order\Infrastructure\Http;
 
-final class GetOrderControllerTest extends ApiTestCase
+final class GetOrderEndpointTest extends ApiTestCase
 {
     public function testReturnsTheStoredOrder(): void
     {

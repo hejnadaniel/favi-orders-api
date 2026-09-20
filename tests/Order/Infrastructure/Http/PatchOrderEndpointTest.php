@@ -6,7 +6,7 @@ namespace App\Tests\Order\Infrastructure\Http;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 
-final class PatchOrderControllerTest extends ApiTestCase
+final class PatchOrderEndpointTest extends ApiTestCase
 {
     /**
      * @return iterable<string, array{0: string}>

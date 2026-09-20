@@ -6,7 +6,7 @@ namespace App\Tests\Order\Infrastructure\Http;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 
-final class CreateOrderControllerTest extends ApiTestCase
+final class CreateOrderEndpointTest extends ApiTestCase
 {
     public function testCreatesOrderAndPointsToItWithLocation(): void
     {
