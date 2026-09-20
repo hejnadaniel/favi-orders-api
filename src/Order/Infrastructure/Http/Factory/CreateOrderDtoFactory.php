@@ -7,8 +7,8 @@ namespace App\Order\Infrastructure\Http\Factory;
 use App\Order\Application\Dto\CreateOrderDto;
 use App\Order\Domain\ValueObject\DecimalAmount;
 use App\Order\Domain\ValueObject\ProductLine;
-use App\Order\Infrastructure\Http\Request\CreateOrderProductRequest;
-use App\Order\Infrastructure\Http\Request\CreateOrderRequest;
+use App\Order\Infrastructure\Http\Request\CreateOrderProductRequestDto;
+use App\Order\Infrastructure\Http\Request\CreateOrderRequestDto;
 use App\Shared\Date\CalendarDateParser;
 
 final class CreateOrderDtoFactory
@@ -18,7 +18,7 @@ final class CreateOrderDtoFactory
     ) {
     }
 
-    public function create(string $partnerId, CreateOrderRequest $request): CreateOrderDto
+    public function create(string $partnerId, CreateOrderRequestDto $request): CreateOrderDto
     {
         return new CreateOrderDto(
             partnerId: $partnerId,
@@ -29,7 +29,7 @@ final class CreateOrderDtoFactory
         );
     }
 
-    private function createProductLine(CreateOrderProductRequest $request): ProductLine
+    private function createProductLine(CreateOrderProductRequestDto $request): ProductLine
     {
         return new ProductLine(
             productId: $request->productId,

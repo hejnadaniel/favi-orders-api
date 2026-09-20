@@ -6,15 +6,15 @@ namespace App\Order\Infrastructure\Http\Factory;
 
 use App\Order\Domain\Entity\Order;
 use App\Order\Domain\Entity\OrderProduct;
-use App\Order\Infrastructure\Http\Response\OrderProductResponse;
-use App\Order\Infrastructure\Http\Response\OrderResponse;
+use App\Order\Infrastructure\Http\Response\OrderProductResponseDto;
+use App\Order\Infrastructure\Http\Response\OrderResponseDto;
 use DateTimeInterface;
 
-final class OrderResponseFactory
+final class OrderResponseDtoFactory
 {
-    public function create(Order $order): OrderResponse
+    public function create(Order $order): OrderResponseDto
     {
-        return new OrderResponse(
+        return new OrderResponseDto(
             partnerId: $order->partnerId,
             orderId: $order->orderId,
             expectedDeliveryDate: $order->expectedDeliveryDate->format('Y-m-d'),
@@ -25,9 +25,9 @@ final class OrderResponseFactory
         );
     }
 
-    private function createProduct(OrderProduct $product): OrderProductResponse
+    private function createProduct(OrderProduct $product): OrderProductResponseDto
     {
-        return new OrderProductResponse(
+        return new OrderProductResponseDto(
             productId: $product->productId,
             name: $product->name,
             price: $product->price,

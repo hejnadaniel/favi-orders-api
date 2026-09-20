@@ -7,7 +7,7 @@ namespace App\Order\Infrastructure\Http\Request;
 use App\Order\Infrastructure\Http\Validator\ValidDecimalAmount;
 use Symfony\Component\Validator\Constraints as Assert;
 
-final readonly class CreateOrderProductRequest
+final readonly class CreateOrderProductRequestDto
 {
     public function __construct(
         #[Assert\NotBlank]

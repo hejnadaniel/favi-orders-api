@@ -9,9 +9,9 @@ use App\Order\Application\Handler\CreateOrderHandler;
 use App\Order\Application\Handler\GetOrderHandler;
 use App\Order\Infrastructure\Http\Factory\ChangeOrderDeliveryDateDtoFactory;
 use App\Order\Infrastructure\Http\Factory\CreateOrderDtoFactory;
-use App\Order\Infrastructure\Http\Factory\OrderResponseFactory;
-use App\Order\Infrastructure\Http\Request\CreateOrderRequest;
-use App\Order\Infrastructure\Http\Request\PatchOrderRequest;
+use App\Order\Infrastructure\Http\Factory\OrderResponseDtoFactory;
+use App\Order\Infrastructure\Http\Request\CreateOrderRequestDto;
+use App\Order\Infrastructure\Http\Request\PatchOrderRequestDto;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
@@ -28,7 +28,7 @@ final class OrderController
         private readonly GetOrderHandler $getOrderHandler,
         private readonly CreateOrderDtoFactory $createOrderDtoFactory,
         private readonly ChangeOrderDeliveryDateDtoFactory $changeOrderDeliveryDateDtoFactory,
-        private readonly OrderResponseFactory $orderResponseFactory,
+        private readonly OrderResponseDtoFactory $orderResponseDtoFactory,
         private readonly UrlGeneratorInterface $urlGenerator,
     ) {
     }
@@ -37,12 +37,12 @@ final class OrderController
     public function create(
         string $partnerId,
         #[MapRequestPayload(acceptFormat: 'json')]
-        CreateOrderRequest $request,
+        CreateOrderRequestDto $request,
     ): JsonResponse {
         $dto = $this->createOrderDtoFactory->create($partnerId, $request);
         $order = $this->createOrderHandler->handle($dto);
 
-        $response = new JsonResponse($this->orderResponseFactory->create($order), Response::HTTP_CREATED);
+        $response = new JsonResponse($this->orderResponseDtoFactory->create($order), Response::HTTP_CREATED);
         $response->headers->set('Location', $this->urlGenerator->generate('api_v1_order_get', [
             'partnerId' => $order->partnerId,
             'orderId' => $order->orderId,
@@ -56,7 +56,7 @@ final class OrderController
     {
         $order = $this->getOrderHandler->handle($partnerId, $orderId);
 
-        return new JsonResponse($this->orderResponseFactory->create($order));
+        return new JsonResponse($this->orderResponseDtoFactory->create($order));
     }
 
     #[Route('/{orderId}', name: 'order_patch', methods: ['PATCH'])]
@@ -67,11 +67,11 @@ final class OrderController
             acceptFormat: 'json',
             serializationContext: [AbstractNormalizer::ALLOW_EXTRA_ATTRIBUTES => false],
         )]
-        PatchOrderRequest $request,
+        PatchOrderRequestDto $request,
     ): JsonResponse {
         $dto = $this->changeOrderDeliveryDateDtoFactory->create($partnerId, $orderId, $request);
         $order = $this->changeOrderDeliveryDateHandler->handle($dto);
 
-        return new JsonResponse($this->orderResponseFactory->create($order));
+        return new JsonResponse($this->orderResponseDtoFactory->create($order));
     }
 }

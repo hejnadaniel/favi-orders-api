@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Order\Infrastructure\Http\Factory;
 
 use App\Order\Application\Dto\ChangeOrderDeliveryDateDto;
-use App\Order\Infrastructure\Http\Request\PatchOrderRequest;
+use App\Order\Infrastructure\Http\Request\PatchOrderRequestDto;
 use App\Shared\Date\CalendarDateParser;
 
 final class ChangeOrderDeliveryDateDtoFactory
@@ -15,7 +15,7 @@ final class ChangeOrderDeliveryDateDtoFactory
     ) {
     }
 
-    public function create(string $partnerId, string $orderId, PatchOrderRequest $request): ChangeOrderDeliveryDateDto
+    public function create(string $partnerId, string $orderId, PatchOrderRequestDto $request): ChangeOrderDeliveryDateDto
     {
         return new ChangeOrderDeliveryDateDto(
             partnerId: $partnerId,

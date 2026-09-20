@@ -137,7 +137,7 @@ src/
         Controller/   OrderController: one class per resource
         Request/      inbound DTOs with validation constraints
         Response/     outbound DTOs
-        Factory/      request -> application DTO and entity -> response translation
+        Factory/      request DTO -> application DTO, entity -> response DTO
         Validator/    ValidDecimalAmount compound constraint
   Shared/
     Problem/          ProblemInterface: contract between exceptions and the HTTP layer
@@ -196,7 +196,7 @@ exists the partner segment is the natural place to enforce it.
 "an endpoint to change the delivery date". Two designs fit: an action endpoint
 per field (`PUT .../delivery-date`) or a document-oriented `PATCH` on the
 order. I chose `PATCH` with an RFC 7396 body: the second patchable field is one
-property in `PatchOrderRequest`, not a new route, and the resource keeps one
+property in `PatchOrderRequestDto`, not a new route, and the resource keeps one
 canonical URL. Unknown fields are rejected so the schema stays explicit. The
 trade-off is that per-field authorization would live in the service rather
 than on the route.
